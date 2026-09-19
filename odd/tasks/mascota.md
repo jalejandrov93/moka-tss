@@ -254,6 +254,49 @@ Leyenda de ruta: `inline` = directo en el hilo padre · `deleg` = worker delegad
 
 **Suite tras integrar T3 y T4:** `Ran 74 tests, FAILED (errors=8)` — 37 de base + 14 + 23, con los mismos 8 errores preexistentes de Revision C. Cero regresiones.
 
+### Review RDD del commit `1aa4c8c`: paró sin recibo
+
+Lineage `review-0b648cec40e0a4be`, target `sha256:0d47cae8…b6e7a`. El usuario dio `granted`.
+
+| Lente | Orden | Resultado |
+| --- | --- | --- |
+| `review-risk` | 0 | admitido (`admission_decision: completed`) |
+| `review-resilience` | 1 | **bloqueado** por el clasificador del proveedor |
+| `review-readability` | 2 | admitido |
+| `review-reliability` | 3 | **bloqueado** por el clasificador del proveedor |
+
+Causa literal de los dos bloqueos: `invoke provider reviewer: claude reviewer transport
+failed: exit status 1: API Error: Opus 5 (1M context)'s safeguards flagged this message`.
+Se relanzaron una vez con los tokens frescos que reofreció el STATUS y fallaron igual →
+determinista. Se declararon con `capture-unachievable --reason=provider_safeguard_refusal`
+y el STATUS final devolvió `stop` / `unachievable_lens_slot`.
+
+**Esto es el proveedor del modelo rechazando una entrada, no un defecto de Gentle AI**, así
+que no corresponde reporte de defecto: se informa y se sigue.
+
+Los hallazgos de los dos lentes que sí completaron **no son recuperables**: Go es dueño de la
+reducción y el cierre, y el cierre nunca ocurrió. `inspect-authority` no acepta `--lineage`,
+y `reopen-results` sirve para poner en cuarentena resultados inservibles, con autorización de
+maintainer.
+
+**Continuación del contrato** para un `unachievable_lens_slot` no transitorio: reducir el
+alcance y arrancar un review nuevo, o `gentle-ai review mode disable --scope clone`. Un
+`stop` nunca aprueba la entrega: la entrega sigue la política ordinaria del repositorio.
+
+Hipótesis razonable, **no verificada**: el candidato de 2212 líneas, con manipulación de
+bytes crudos y `subprocess`, es lo que dispara el clasificador. Reducir el alcance ataca las
+dos cosas a la vez, porque el presupuesto de entrega de ~400 líneas ya estaba excedido.
+
+- **D12 — `tools/spike/` sale del alcance revisable.** Elegido por el usuario 2026-09-19.
+  `gentle-ai review` no permite excluir paths trackeados, pero **los untracked quedan fuera
+  del candidato salvo que se los incluya explícitamente** (`--untracked-path` /
+  `--untracked-scope`). Así que el spike se destrackeó con `git rm --cached` y se agregó
+  `tools/spike/` al `.gitignore`. **Los archivos siguen en disco y se siguen ejecutando**;
+  la historia quedó preservada en la rama `spike/herramientas` (@ `1aa4c8c`).
+  Deuda reconocida: `first_frame.py` ya no es realmente un spike, es el prototipo que
+  maneja la pantalla. Su destino es graduarse a la app de producción en T7/T8; hasta
+  entonces vive fuera de git a propósito.
+
 **Estado RDD: on** (decidido por `global`; clone-local sin fijar). Verificado con
 `gentle-ai review mode status`.
 

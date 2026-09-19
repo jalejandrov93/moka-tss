@@ -142,3 +142,7 @@ tmp
 
 version.txt
 external/LibreHardwareMonitor/LibreHardwareMonitorLib.sys
+
+# Spike tools: disposable prototypes kept on disk but out of git, so the
+# review candidate stays production-only. History preserved on spike/herramientas.
+tools/spike/
