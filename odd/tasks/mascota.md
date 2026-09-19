@@ -35,10 +35,30 @@ como incomodidad en la cara del sprite antes que como un dígito.
 | Update parcial | `DisplayPILImage(image, x, y, w, h)` transmite solo esa región | `lcd_comm_rev_a.py` |
 | Sin touch / sin LED backplate | El protocolo es unidireccional host→pantalla | `lcd_comm_rev_a.py` |
 
-**Throughput: PENDIENTE DE MEDIR (T1).** Estimación upstream: frame completo 307.200 B en
-~2-3 s (0,3-0,5 fps); sprite 64×64 = 8.192 B en ~0,06-0,08 s (~12-15 fps). El baudrate de
-115200 es valor de handshake, no el techo real — a 115200 8N1 un frame tardaría ~27 s y se
-miden 2-3 s. **Ningún diseño de layout se cierra hasta tener el número real de T1.**
+### Throughput: MEDIDO en este equipo (T1, 2026-09-19)
+
+`tools/spike/measure_throughput.py` sobre COM3, mediana de 3-10 corridas por región:
+
+| Región | Payload | Mediana | Throughput | FPS |
+| --- | --- | --- | --- | --- |
+| Frame completo 320×480 | 307.200 B | 0,573 s | 524,0 kB/s | **1,75** |
+| Banda 320×64 | 40.960 B | 0,077 s | 522,3 kB/s | **13,06** |
+| Sprite 96×96 | 18.432 B | 0,034 s | 523,9 kB/s | **29,11** |
+| Sprite 64×64 | 8.192 B | 0,015 s | 522,5 kB/s | **65,31** |
+| Número 48×16 | 1.536 B | 0,003 s | 510,3 kB/s | **340,22** |
+
+**El bus da ~524 kB/s sostenidos**, constante en todos los tamaños — es el techo real del USB,
+no del baudrate. Confirma que los 115200 son valor de handshake: a 115200 8N1 reales un frame
+tardaría ~27 s y se miden 0,573 s.
+
+Los reportes upstream (~2-3 s por frame) subestiman este equipo por **4-5×**. El presupuesto
+de animación es mucho más holgado de lo previsto: una mascota de 64×64 tiene 65 fps
+disponibles, y hasta un sprite de 128×128 (32.768 B) daría ~16 fps. La restricción real ya
+no es el sprite sino el **repintado de fondo**, que sigue costando 0,573 s.
+
+Advertencia de medición: esto cronometra el tiempo de empujar bytes al puerto, no el refresco
+propio del panel. Como el número es idéntico en las cinco regiones, es claramente el límite
+del bus; aun así, T9 debe confirmar que a esa cadencia no aparece tearing visible.
 
 ## Decisiones tomadas
 
@@ -184,14 +204,35 @@ Leyenda de ruta: `inline` = directo en el hilo padre · `deleg` = worker delegad
 
 | Tarea | Estado | Evidencia | Tier RDD |
 | --- | --- | --- | --- |
-| T1 | pendiente | — | — |
-| T2-T10 | pendiente | — | — |
+| — | commit `1415b72` | `chore(mascota)`: documento + spike | medium, `review_due:false` (bajo presupuesto) → diferido al slice |
+| T1 | **hecha** | Medido en COM3: 524 kB/s sostenidos; tabla completa arriba. El usuario cerró `UsbMonitor.exe`. | pendiente de evaluar |
+| T2 | parcial | `pyserial 3.5` + `Pillow 11.3.0` instalados en `C:\Python313`. Falta venv formal + verificar SIMU y si LHM pide admin acá. | — |
+| T3 | **fallida, re-delegar** | agy `claude-sonnet-4-6` reportó éxito en falso: lanzó su propio subagente y terminó el turno sin esperarlo. En disco solo quedaron `__init__.py` vacíos. Sin `codexbar.py`, sin tests. | — |
+| T4 | **fallida, re-delegar** | agy `claude-opus-4-6-thinking`, mismo patrón. Escribió `agenthub.py` (55 líneas, 4 clases) pero **sin archivo de tests** → viola el TDD estricto. No se acepta. | — |
+| T8 | anticipo | `tools/spike/first_frame.py`: primer frame real en pantalla con datos en vivo (5 providers de codexbar + jobs de agent-hub), 0,575 s. Valida el layout D1 de punta a punta. | pendiente de evaluar |
+| T5-T7, T9, T10 | pendiente | — | — |
 
-**Estado RDD:** sin consultar todavía (`gentle-ai review mode status`). Se resuelve antes del
-primer commit de unidad de trabajo.
+**Estado RDD: on** (decidido por `global`; clone-local sin fijar). Verificado con
+`gentle-ai review mode status`.
+
+**Baseline de tests en la base `2b33ab4`:** `Ran 37 tests, FAILED (errors=8)`. Los 8 errores
+son todos de `tests/library/lcd/test_lcd_comm_rev_c.py` (Revision C, no la nuestra). Se pasan
+a los workers como fallos ambientales conocidos.
+
+## Hallazgos diferidos
+
+| id | origen | problema | evidencia | arreglo propuesto |
+| --- | --- | --- | --- | --- |
+| HD-1 | baseline de T3/T4 | 8 tests de Revision C fallan en el upstream: el mock no inicializa `sub_revision` | `library/lcd/lcd_comm_rev_c.py:352` → `AttributeError: 'MockedLcdCommRevC' object has no attribute 'sub_revision'` | Setear `sub_revision` en `MockedLcdCommRevC`. Candidato a PR upstream; fuera del alcance de Mascota (usamos Rev A). |
+| HD-2 | T3 y T4 | agy con `claude-sonnet-4-6` y `claude-opus-4-6-thinking` lanza su propio subagente interno en tareas de escritura y **termina el turno sin esperarlo**, devolviendo `succeeded` con prosa del tipo "Worker launched. I'll wait for it to complete." | Jobs `2026-09-19T22-33-09-783Z-fbca68df` y `2026-09-19T22-33-35-463Z-0fd0c651`: ambos `succeeded`, uno con solo `__init__.py` vacíos y el otro sin el archivo de tests exigido. | Nunca aceptar una entrega de escritura de agy por su autorreporte: verificar siempre el worktree con `git status` + `find`. Para T3/T4 re-delegar a un writer que no sub-delegue. |
+| HD-3 | T8 anticipo | `GET /dashboard/v1/snapshot` de codexbar tarda más de 6 s cuando refresca providers; con timeout de 6 s da `TimeoutError` y la pantalla se queda sin cuotas. | `first_frame.py` con `timeout=6` falló; con `timeout=25` devolvió los 5 providers. | El adaptador de T3 ya especifica timeout de 30 s. Confirmado que 6 s es insuficiente: no bajarlo. |
 
 ## Siguiente paso
 
-**T1 — el spike de medición.** Bloquea el diseño del layout y el presupuesto de animación:
-todos los números de fps de arriba son estimaciones de reportes upstream, no mediciones de
-este equipo. Requiere cerrar `UsbMonitor.exe` (PID observado 22560) porque retiene el COM3.
+**Re-delegar T3 y T4** con un writer que no sub-delegue (ver HD-2). El presupuesto de
+animación ya no bloquea nada: T1 está medido y es holgado.
+
+Con los números reales de T1, revisar en T6/T8 si conviene subir la mascota de 64×64 a
+96×96 o 128×128: a 524 kB/s sostenidos, 128×128 todavía da ~16 fps. La decisión D1 (datos
+protagonistas) se mantiene; lo que cambia es que el sprite puede ser más grande sin costo
+perceptible.
