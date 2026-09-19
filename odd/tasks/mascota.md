@@ -88,6 +88,24 @@ del bus; aun así, T9 debe confirmar que a esa cadencia no aparece tearing visib
   ninguno. Deshabilitados en `~/.config/codexbar/config.json` (`enabled: false`) **y**
   filtrados del lado del render, para que la pantalla quede bien aunque el servicio de
   codexbar todavía no se haya reiniciado. Pedido por el usuario 2026-09-19.
+- **D13 — La interfaz de configuración es un panel web local, no tkinter ni Tauri.**
+  El usuario delegó la elección el 2026-09-19 pidiendo "una interfaz intuitiva moderna
+  amigable". Servida por la propia app en `127.0.0.1` y abierta desde la bandeja en el
+  navegador por defecto.
+  Por qué no **Tauri**: mete un toolchain de Rust más Node y cargo, y un segundo sistema de
+  build, dentro de un proyecto Python cuyo objetivo declarado es **un solo `.exe` de doble
+  clic** (T12). Terminarían siendo dos binarios más IPC entre ellos. Es muchísima maquinaria
+  para un formulario de configuración.
+  Por qué no **tkinter**: es un solo toolchain y ya está en `requirements.txt`, pero incluso
+  con `sv-ttk` no llega a "moderna y amigable", que es exactamente lo que se pidió.
+  Por qué el panel web gana: HTML y CSS de verdad, **reutiliza el mismo sistema de diseño que
+  ya está en la pantalla** (D9: Dark OLED, Cascadia Code, barras segmentadas), cero toolchain
+  extra, PyInstaller empaqueta archivos estáticos sin drama, y sigue siendo un solo `.exe`.
+  Además el usuario ya tiene y usa el dashboard local de agent-hub en `127.0.0.1:7777`: es el
+  mismo patrón, ya probado en esta máquina.
+  Costo aceptado: abre en el navegador en vez de una ventana nativa. Para un panel que se
+  abre de vez en cuando desde la bandeja es un buen negocio — se puede redimensionar, hacer
+  zoom y dejarlo en otro monitor.
 - **D11 — Sensores sin privilegios de administrador.** `nvidia-smi` entrega uso, temperatura
   y VRAM de la GPU **sin elevación** (verificado: RTX 5060, 1%, 44 °C, 1781/8151 MiB), y
   `psutil` da CPU y RAM. Esto baja mucho la urgencia de LibreHardwareMonitor: lo único que
@@ -219,14 +237,21 @@ Leyenda de ruta: `inline` = directo en el hilo padre · `deleg` = worker delegad
   README propio en español, guía de instalación, y arranque con Windows.
   Check: seguir el README desde cero en una sesión limpia deja la pantalla andando.
 
-- [ ] **T11 — Interfaz de configuración.** Ruta: `deleg`. Trigger: UI nueva, 2+ archivos.
-  Pedida por el usuario 2026-09-19. El upstream ya trae `configure.py` (tkinter + `sv-ttk`)
-  que cubre puerto COM, revisión, tema, **brillo** y **orientación**: se extiende, no se
-  reescribe. Hay que sumarle lo propio de Mascota: endpoints de codexbar/agent-hub, editor de
-  reglas de alerta, elección de mascota, y qué providers/ventanas mostrar.
-  Decisión pendiente: extender `configure.py` (rápido, hereda su GUI) vs. panel web servido
-  en localhost (más cómodo, pero es una segunda stack de UI). Ver "Siguiente paso".
-  Check: cambiar brillo y orientación desde la UI se refleja en la pantalla sin editar YAML.
+- [ ] **T11 — Interfaz de configuración: panel web local.** Ruta: `deleg`. Trigger: UI, 2+ archivos.
+  Ver decisión **D13**. Servida por la propia app en `127.0.0.1`, se abre desde el ícono de
+  bandeja en el navegador por defecto. Cubre: endpoints de codexbar y agent-hub, editor de
+  reglas de alerta, elección de mascota, qué providers mostrar, brillo y orientación.
+  Check: cambiar brillo y orientación desde la UI se refleja en la pantalla sin tocar YAML.
+
+- [ ] **T12 — Empaquetado en un `.exe` de Windows.** Ruta: `deleg`. Trigger: build + entry point.
+  **Requisito explícito del usuario 2026-09-19: "simplemente tener un .exe para abrir de forma
+  fácil y no tener que estar corriendo comandos de python".** El upstream ya trae
+  `turing-system-monitor.spec` y `tools/windows-installer/`, y `pyinstaller 6.22.3` ya está en
+  el venv: se extiende ese andamiaje, no se inventa uno.
+  Incluye: entry point propio, ícono de bandeja con "Configurar" y "Salir", arranque con
+  Windows opcional, y que los datos (`res/mascota/`, sprites, `rules.yaml`) resuelvan bien
+  bajo `sys._MEIPASS` — un exe con doble clic **no arranca en el directorio de la app**.
+  Check: doble clic sobre el `.exe` en una máquina sin Python deja la pantalla andando.
 
 ## Criterios de aceptación
 
@@ -249,8 +274,21 @@ Leyenda de ruta: `inline` = directo en el hilo padre · `deleg` = worker delegad
 | T4 | **hecha** | `agenthub.py` (363 líneas) + 23 tests. RED observado (`ModuleNotFoundError`). Suite 60 tests, solo los 8 conocidos. Gates de CI en 0. Encontró un bug real: `iter_lines()` con el `chunk_size=512` por defecto mata la entrega SSE cuando no hay `Content-Length` ni chunked encoding → arreglado con `chunk_size=1`. Mergeado. | pendiente de evaluar |
 | T7 | **validada anticipadamente** | Blits parciales funcionando en `Screen` (grilla de tiles 80×40): primer frame completo 0,580 s, refrescos siguientes **1-5 tiles en 0,013-0,067 s**. Entre 20× y 40× más rápido. Medido en modo `--watch` durante 22 s. | pendiente de evaluar |
 | T8 | anticipo | Rediseño con la skill `ui-ux-pro-max`: barra de estado tipo tmux (sin header), Cascadia Code, barras segmentadas, paleta OLED, panel de sistema con CPU/GPU/RAM/VRAM. | pendiente de evaluar |
+| T5 | **hecha y mergeada** | `rules.py` (388 líneas) + `res/mascota/rules.yaml` + **38 tests**. Suite 112, solo los 8 conocidos. Gates en 0. Commits `0181988` + merge `281f5bd`. Pasó por auditoría adversarial delegada que encontró 3 defectos reales; los 3 corregidos y **reproducidos por el padre** antes de aceptar. | n/a (RDD off) |
+| T2 | **hecha** | Checkout de Windows en `D:\JAVM\mascota` clonado del repo WSL vía UNC (necesitó `git config --global --add safe.directory`). Venv con `C:\Python313`: **todo `requirements.txt` instaló limpio en Python 3.13**, incluido `pythonnet 3.1.0`, `numpy 2.5.3`, `Pillow 12.3.0`, `pyusb`, `pystray`. | n/a |
 | T11 | nueva | Interfaz de configuración, pedida por el usuario. Decisión de enfoque pendiente. | — |
-| T5, T6, T9, T10 | pendiente | T6 ya tiene fuente de assets decidida (ver HD-4). | — |
+| T6, T9, T10 | pendiente | T6 ya tiene fuente de assets decidida (ver HD-4). | — |
+
+**Convención de YAML del repo (corrección):** `library/config.py:27` usa **PyYAML**
+(`import yaml`) para leer. `ruamel.yaml` se usa **solo** en `configure.py`, porque el editor
+gráfico reescribe el archivo y necesita preservar comentarios. Para código que solo lee,
+PyYAML es lo consistente. T5 lo verificó y corrigió la instrucción equivocada que le pasé.
+
+**Decisiones de T5** (motor de reglas): desempate determinista ordenando por la tupla
+explícita `(-priority, -mood_rank, id)` y tomando `min()`, nunca por orden de inserción.
+Dato ausente / `None` / `NaN` **congela** el estado de esa regla en ese tick: no arranca ni
+avanza el temporizador `for`, y **no limpia** una regla ya disparada — deliberado, para no
+apagar una alerta por datos viejos.
 
 **Suite tras integrar T3 y T4:** `Ran 74 tests, FAILED (errors=8)` — 37 de base + 14 + 23, con los mismos 8 errores preexistentes de Revision C. Cero regresiones.
 
@@ -283,9 +321,31 @@ maintainer.
 alcance y arrancar un review nuevo, o `gentle-ai review mode disable --scope clone`. Un
 `stop` nunca aprueba la entrega: la entrega sigue la política ordinaria del repositorio.
 
-Hipótesis razonable, **no verificada**: el candidato de 2212 líneas, con manipulación de
-bytes crudos y `subprocess`, es lo que dispara el clasificador. Reducir el alcance ataca las
-dos cosas a la vez, porque el presupuesto de entrega de ~400 líneas ya estaba excedido.
+### Segundo intento con alcance reducido: misma falla. Hipótesis refutada.
+
+Lineage `review-5ee3ca8a85fee665`, target `sha256:9e0b488c…dbb6`, risk **medium**, 9 archivos
+/ 1710 líneas, sin `process_boundary`. El usuario volvió a dar `granted`. A riesgo medio el
+plan es **un solo lente consolidado: `review-reliability`** — y falló con el error idéntico.
+
+**Mi hipótesis de que el problema era el tamaño o el `subprocess` queda refutada.** La
+evidencia real apunta a que el bloqueo es **específico del lente**, no del diff:
+
+| Lineage | Líneas | Lente | Resultado |
+| --- | --- | --- | --- |
+| `…0b648cec` | 2212 | `review-risk` | ✅ admitido |
+| `…0b648cec` | 2212 | `review-readability` | ✅ admitido |
+| `…0b648cec` | 2212 | `review-resilience` | ❌ safeguards |
+| `…0b648cec` | 2212 | `review-reliability` | ❌ safeguards |
+| `…5ee3ca8a` | 1710 | `review-reliability` | ❌ safeguards |
+
+Dos lentes pasaron **sobre el mismo diff** que rechazaron los otros dos, y bajar de 2212 a
+1710 líneas no cambió nada. Tres intentos, dos lineages, error idéntico. Lo que varía es el
+lente, no el candidato.
+
+El transporte del reviewer corre con el modelo de la sesión de Claude Code (el error nombra
+`Opus 5 (1M context)`), y la CLI de `gentle-ai` no expone configuración de modelo del
+reviewer (`review capabilities` ni siquiera acepta `--cwd`; no hay variables `GENTLE_AI_*`
+en el entorno). Palanca posible **no verificada**: cambiar el modelo de la sesión.
 
 - **D12 — `tools/spike/` sale del alcance revisable.** Elegido por el usuario 2026-09-19.
   `gentle-ai review` no permite excluir paths trackeados, pero **los untracked quedan fuera
@@ -297,8 +357,15 @@ dos cosas a la vez, porque el presupuesto de entrega de ~400 líneas ya estaba e
   maneja la pantalla. Su destino es graduarse a la app de producción en T7/T8; hasta
   entonces vive fuera de git a propósito.
 
-**Estado RDD: on** (decidido por `global`; clone-local sin fijar). Verificado con
-`gentle-ai review mode status`.
+**Estado RDD: OFF en este clon** (decidido por `clone_local`; el `global` sigue `on` e
+intacto). Apagado a pedido explícito del usuario el 2026-09-19, después de que el review
+nativo no pudiera completarse dos veces por el clasificador del proveedor. Reversible con
+`gentle-ai review mode enable`.
+
+**Verificación en su reemplazo:** TDD estricto con RED observado, la suite completa, los dos
+gates de flake8 de CI, y **auditoría adversarial delegada a agent-hub** por cada tarea no
+trivial, con el padre reproduciendo los hallazgos antes de aceptarlos. Esa auditoría ya
+justificó su costo: encontró en T5 dos defectos reales que los 30 tests en verde no veían.
 
 **Baseline de tests en la base `2b33ab4`:** `Ran 37 tests, FAILED (errors=8)`. Los 8 errores
 son todos de `tests/library/lcd/test_lcd_comm_rev_c.py` (Revision C, no la nuestra). Se pasan
