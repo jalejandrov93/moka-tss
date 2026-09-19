@@ -34,6 +34,11 @@ como incomodidad en la cara del sprite antes que como un dígito.
 | Comandos | `RESET=101 CLEAR=102 TO_BLACK=103 SCREEN_OFF=108 SCREEN_ON=109 SET_BRIGHTNESS=110 SET_ORIENTATION=121 DISPLAY_PIXELS=195 DISPLAY_BITMAP=197` | `lcd_comm_rev_a.py:32-47` |
 | Update parcial | `DisplayPILImage(image, x, y, w, h)` transmite solo esa región | `lcd_comm_rev_a.py` |
 | Sin touch / sin LED backplate | El protocolo es unidireccional host→pantalla | `lcd_comm_rev_a.py` |
+| Orientación | **Horizontal (`LANDSCAPE = 2`) → 480×320.** Trama de 16 bytes, `buf[6] = orientation + 100`, `buf[7..10]` = nuevo ancho/alto big-endian | verificado en hardware 2026-09-19 |
+| Brillo | **Escala INVERTIDA**: el panel toma 0 = máximo, 255 = mínimo. `absoluto = 255 - (pct/100)*255`. El default del upstream (`level=25` → 191) se ve casi apagado. | `lcd_comm_rev_a.py:147`, verificado a 90% |
+
+**Orientación adoptada: horizontal 480×320.** El usuario tiene la pantalla montada en
+horizontal. `PORTRAIT=0, REVERSE_PORTRAIT=1, LANDSCAPE=2, REVERSE_LANDSCAPE=3`.
 
 ### Throughput: MEDIDO en este equipo (T1, 2026-09-19)
 
@@ -62,9 +67,31 @@ del bus; aun así, T9 debe confirmar que a esa cadencia no aparece tearing visib
 
 ## Decisiones tomadas
 
-- **D1 — Layout: datos protagonistas.** Grid denso de cuotas + sensores; mascota de 64×64 en
-  la esquina inferior derecha reaccionando. Decidido por el usuario 2026-09-19.
+- **D1 — Layout: datos protagonistas.** Grid denso de cuotas + sensores; mascota reaccionando
+  en un costado. Decidido por el usuario 2026-09-19.
   Razón: máxima densidad de información y presupuesto de bytes holgado en el sprite.
+- **D7 — Orientación horizontal 480×320.** La pantalla está montada en horizontal.
+  Cambia el layout respecto de D1: columna de cuotas a la izquierda, panel de agentes y
+  mascota a la derecha. Con el ancho extra la mascota sube de 64×64 a **96×96** (29 fps,
+  sobra presupuesto). Decidido por el usuario 2026-09-19.
+- **D8 — Brillo por defecto 85-90%, nunca 100%.** El maintainer del upstream avisa que la
+  3.5" se calienta con brillo alto. El default del upstream (25%) se ve casi apagado.
+- **D9 — Sistema de diseño: Dark Mode (OLED), "code dark + run green".** Generado con la
+  skill `ui-ux-pro-max` (2026-09-19). Paleta: fondo `#0F172A`, panel `#1E293B`, líneas
+  `#334155`, texto `#F8FAFC`, acento `#22C55E`; ámbar `#EAB308` y rojo `#EF4444` para
+  umbrales. Tipografía recomendada Fira Code → localmente **Cascadia Code**
+  (`C:/Windows/Fonts/CascadiaCode.ttf`), que ya viene con Windows; Fira Code no está
+  instalada. Sin header decorativo: en su lugar una **barra de estado tipo tmux** que lleva
+  la peor alerta, los jobs activos y la hora. Barras **segmentadas**, que se leen como
+  instrumento y no como progreso web.
+- **D10 — Providers ocultos: `copilot` y `opencodego`.** El usuario no tiene cuenta en
+  ninguno. Deshabilitados en `~/.config/codexbar/config.json` (`enabled: false`) **y**
+  filtrados del lado del render, para que la pantalla quede bien aunque el servicio de
+  codexbar todavía no se haya reiniciado. Pedido por el usuario 2026-09-19.
+- **D11 — Sensores sin privilegios de administrador.** `nvidia-smi` entrega uso, temperatura
+  y VRAM de la GPU **sin elevación** (verificado: RTX 5060, 1%, 44 °C, 1781/8151 MiB), y
+  `psutil` da CPU y RAM. Esto baja mucho la urgencia de LibreHardwareMonitor: lo único que
+  queda sin cubrir es la **temperatura de CPU**. Mascota no debe exigir admin para arrancar.
 - **D2 — Fork de `mathoudebine/turing-smart-screen-python`**, no reescritura. Su arquitectura
   ya separa sensores / render de temas / driver, y resuelve la capa cara (LibreHardwareMonitor).
   Remote `upstream` conservado para poder traer arreglos.
@@ -167,8 +194,10 @@ Leyenda de ruta: `inline` = directo en el hilo padre · `deleg` = worker delegad
   Check: tests de tabla cubriendo histéresis, empate de prioridad y datos ausentes.
 
 - [ ] **T6 — Assets y máquina de estados de la mascota.** Ruta: `deleg`. Trigger: 2+ archivos.
-  Sprites pixel art 64×64, loops de 4-8 frames por estado (tranquila, atenta, agobiada,
-  alarmada, durmiendo, error). Presupuesto por frame según T1.
+  Sprites pixel art 96×96, loops de 4-8 frames por estado (calma, atenta, agobiada,
+  alarmada, durmiendo, error). Presupuesto por frame según T1 (sobra: 29 fps a 96×96).
+  **Fuente de assets: OpenGameArt (CC0/CC-BY) o packs de Kenney.nl (CC0).** Ver HD-4:
+  OpenPets quedó descartado por licencia.
   Check: cada estado tiene sus frames; test de que la máquina no queda sin transición válida.
 
 - [ ] **T7 — Compositor de blits parciales.** Ruta: `deleg`. Trigger: núcleo de render.
@@ -190,6 +219,15 @@ Leyenda de ruta: `inline` = directo en el hilo padre · `deleg` = worker delegad
   README propio en español, guía de instalación, y arranque con Windows.
   Check: seguir el README desde cero en una sesión limpia deja la pantalla andando.
 
+- [ ] **T11 — Interfaz de configuración.** Ruta: `deleg`. Trigger: UI nueva, 2+ archivos.
+  Pedida por el usuario 2026-09-19. El upstream ya trae `configure.py` (tkinter + `sv-ttk`)
+  que cubre puerto COM, revisión, tema, **brillo** y **orientación**: se extiende, no se
+  reescribe. Hay que sumarle lo propio de Mascota: endpoints de codexbar/agent-hub, editor de
+  reglas de alerta, elección de mascota, y qué providers/ventanas mostrar.
+  Decisión pendiente: extender `configure.py` (rápido, hereda su GUI) vs. panel web servido
+  en localhost (más cómodo, pero es una segunda stack de UI). Ver "Siguiente paso".
+  Check: cambiar brillo y orientación desde la UI se refleja en la pantalla sin editar YAML.
+
 ## Criterios de aceptación
 
 1. La pantalla muestra en español las cuotas de los 5 providers con su color de acento.
@@ -207,10 +245,14 @@ Leyenda de ruta: `inline` = directo en el hilo padre · `deleg` = worker delegad
 | — | commit `1415b72` | `chore(mascota)`: documento + spike | medium, `review_due:false` (bajo presupuesto) → diferido al slice |
 | T1 | **hecha** | Medido en COM3: 524 kB/s sostenidos; tabla completa arriba. El usuario cerró `UsbMonitor.exe`. | pendiente de evaluar |
 | T2 | parcial | `pyserial 3.5` + `Pillow 11.3.0` instalados en `C:\Python313`. Falta venv formal + verificar SIMU y si LHM pide admin acá. | — |
-| T3 | **fallida, re-delegar** | agy `claude-sonnet-4-6` reportó éxito en falso: lanzó su propio subagente y terminó el turno sin esperarlo. En disco solo quedaron `__init__.py` vacíos. Sin `codexbar.py`, sin tests. | — |
-| T4 | **fallida, re-delegar** | agy `claude-opus-4-6-thinking`, mismo patrón. Escribió `agenthub.py` (55 líneas, 4 clases) pero **sin archivo de tests** → viola el TDD estricto. No se acepta. | — |
-| T8 | anticipo | `tools/spike/first_frame.py`: primer frame real en pantalla con datos en vivo (5 providers de codexbar + jobs de agent-hub), 0,575 s. Valida el layout D1 de punta a punta. | pendiente de evaluar |
-| T5-T7, T9, T10 | pendiente | — | — |
+| T3 | **hecha** | `codexbar.py` (253 líneas) + 14 tests. RED observado (`ImportError: cannot import name 'codexbar'`). Suite 51 tests, solo los 8 errores conocidos. Ambos gates de CI de flake8 en 0. Verificado por el padre, no por autorreporte. Commit en `task/t3-codexbar`, mergeado. | pendiente de evaluar |
+| T4 | **hecha** | `agenthub.py` (363 líneas) + 23 tests. RED observado (`ModuleNotFoundError`). Suite 60 tests, solo los 8 conocidos. Gates de CI en 0. Encontró un bug real: `iter_lines()` con el `chunk_size=512` por defecto mata la entrega SSE cuando no hay `Content-Length` ni chunked encoding → arreglado con `chunk_size=1`. Mergeado. | pendiente de evaluar |
+| T7 | **validada anticipadamente** | Blits parciales funcionando en `Screen` (grilla de tiles 80×40): primer frame completo 0,580 s, refrescos siguientes **1-5 tiles en 0,013-0,067 s**. Entre 20× y 40× más rápido. Medido en modo `--watch` durante 22 s. | pendiente de evaluar |
+| T8 | anticipo | Rediseño con la skill `ui-ux-pro-max`: barra de estado tipo tmux (sin header), Cascadia Code, barras segmentadas, paleta OLED, panel de sistema con CPU/GPU/RAM/VRAM. | pendiente de evaluar |
+| T11 | nueva | Interfaz de configuración, pedida por el usuario. Decisión de enfoque pendiente. | — |
+| T5, T6, T9, T10 | pendiente | T6 ya tiene fuente de assets decidida (ver HD-4). | — |
+
+**Suite tras integrar T3 y T4:** `Ran 74 tests, FAILED (errors=8)` — 37 de base + 14 + 23, con los mismos 8 errores preexistentes de Revision C. Cero regresiones.
 
 **Estado RDD: on** (decidido por `global`; clone-local sin fijar). Verificado con
 `gentle-ai review mode status`.
@@ -226,6 +268,8 @@ a los workers como fallos ambientales conocidos.
 | HD-1 | baseline de T3/T4 | 8 tests de Revision C fallan en el upstream: el mock no inicializa `sub_revision` | `library/lcd/lcd_comm_rev_c.py:352` → `AttributeError: 'MockedLcdCommRevC' object has no attribute 'sub_revision'` | Setear `sub_revision` en `MockedLcdCommRevC`. Candidato a PR upstream; fuera del alcance de Mascota (usamos Rev A). |
 | HD-2 | T3 y T4 | agy con `claude-sonnet-4-6` y `claude-opus-4-6-thinking` lanza su propio subagente interno en tareas de escritura y **termina el turno sin esperarlo**, devolviendo `succeeded` con prosa del tipo "Worker launched. I'll wait for it to complete." | Jobs `2026-09-19T22-33-09-783Z-fbca68df` y `2026-09-19T22-33-35-463Z-0fd0c651`: ambos `succeeded`, uno con solo `__init__.py` vacíos y el otro sin el archivo de tests exigido. | Nunca aceptar una entrega de escritura de agy por su autorreporte: verificar siempre el worktree con `git status` + `find`. Para T3/T4 re-delegar a un writer que no sub-delegue. |
 | HD-3 | T8 anticipo | `GET /dashboard/v1/snapshot` de codexbar tarda más de 6 s cuando refresca providers; con timeout de 6 s da `TimeoutError` y la pantalla se queda sin cuotas. | `first_frame.py` con `timeout=6` falló; con `timeout=25` devolvió los 5 providers. | El adaptador de T3 ya especifica timeout de 30 s. Confirmado que 6 s es insuficiente: no bajarlo. |
+| HD-4 | T6 | **OpenPets descartado como fuente de mascotas.** El repo es MIT (verificado por la API de GitHub: `spdx_id: MIT`, 1214 estrellas, push 2026-09-19), pero su catálogo real de 1304 mascotas vive **fuera del git**, en `openpets.dev`, y **no declara licencia en ningún lado**: ni en el esquema `pet.json`, ni en `catalog.v3.json`, ni en un zip de muestra. El único control es un campo de texto libre, sin validar, al momento de enviar. | Un solo `LICENSE` en la raíz del repo, sin `ASSETS`/`CREDITS`/`NOTICE` aparte (verificado con la API de contenidos). | No usar el catálogo. El gato "Hoodie Cat" incorporado sí es MIT y reutilizable, pero es mal candidato: sin estado "durmiendo", solo 7 animaciones mal mapeadas, y es un render semi-3D con degradados suaves que se degrada feo a 96×96 frente a pixel art real. **Ir a OpenGameArt (CC0/CC-BY) o Kenney.nl (CC0).** |
+| HD-5 | T8 anticipo | El servicio `codexbar` corre como unidad **de sistema**, así que reiniciarlo pide `sudo` y el shell no lo tiene. El cambio en `config.json` (deshabilitar `copilot` y `opencodego`) queda escrito pero no aplicado hasta el reinicio. | `sudo -n systemctl restart codexbar` → `sudo: a password is required`. | El filtro `HIDDEN_PROVIDERS` del lado del render ya cubre la pantalla. Para que codexbar deje de consultarlos hace falta que el usuario corra `sudo systemctl restart codexbar`. Backup en `~/.config/codexbar/config.json.bak`. |
 
 ## Siguiente paso
 
