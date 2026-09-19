@@ -1,0 +1,121 @@
+# Reglas de alerta de Mascota — motor declarativo (library/mascota/rules.py)
+#
+# Editá este archivo para agregar o ajustar una alerta: nunca hace falta
+# tocar Python. El motor evalúa las reglas en cada tick con las métricas
+# vigentes (un dict nombre -> valor) y resuelve UN solo ánimo activo.
+#
+# Ánimos disponibles, de menor a mayor urgencia. El orden importa: se usa
+# para desempatar reglas con la misma prioridad (gana el ánimo más urgente).
+moods: [durmiendo, calma, atenta, agobiada, alarmada, error]
+
+# Ánimo cuando ninguna regla está disparada.
+default_mood: calma
+
+# Forma de cada regla:
+#   id:           identificador único (string). Se usa en errores y en el
+#                 desempate final si dos reglas empatan en todo lo demás.
+#   metric:       nombre de la métrica tal como la entrega el caller (nunca
+#                 un sensor importado acá: el motor es agnóstico a la fuente).
+#   op:           operador de comparación: >=, >, <=, <, ==, !=
+#   value:        umbral que dispara la regla.
+#   for:          segundos que la condición debe sostenerse antes de disparar
+#                 (debounce de disparo). Opcional, default 0 (dispara ya).
+#   release:      umbral de liberación (histéresis). Opcional: si se omite,
+#                 usa el mismo valor que `value` con el operador estricto
+#                 contrario (p.ej. >= dispara / < libera), lo que ya evita
+#                 parpadeo justo en el borde.
+#   release_for:  segundos por debajo (o por encima, según `op`) de
+#                 `release` antes de limpiar la alerta. Opcional, default 0.
+#   mood:         ánimo que produce esta regla mientras está disparada. Debe
+#                 estar en la lista `moods` de arriba.
+#   priority:     entero, gana la prioridad más alta entre reglas disparadas
+#                 a la vez. Opcional, default 0. Empate exacto -> gana el
+#                 ánimo más urgente y, si sigue empatado, el `id` que
+#                 ordena primero alfabéticamente (ver docstring de
+#                 RuleEngine).
+rules:
+  # --- CPU ---
+  - id: cpu-alto
+    metric: cpu
+    op: ">="
+    value: 85
+    for: 30
+    release: 75
+    release_for: 15
+    mood: agobiada
+    priority: 50
+
+  - id: cpu-critico
+    metric: cpu
+    op: ">="
+    value: 97
+    for: 10
+    release: 90
+    release_for: 10
+    mood: alarmada
+    priority: 80
+
+  # --- GPU ---
+  - id: gpu-alto
+    metric: gpu
+    op: ">="
+    value: 90
+    for: 30
+    release: 80
+    release_for: 15
+    mood: agobiada
+    priority: 40
+
+  # --- Temperatura (si hay admin / LibreHardwareMonitor) ---
+  - id: temperatura-alta
+    metric: cpu_temp
+    op: ">="
+    value: 85
+    for: 15
+    release: 78
+    release_for: 20
+    mood: alarmada
+    priority: 90
+
+  # --- Cuotas de proveedores IA (codexbar) ---
+  - id: cuota-agotandose
+    metric: quota_max_used_percent
+    op: ">="
+    value: 90
+    for: 5
+    release: 80
+    release_for: 30
+    mood: atenta
+    priority: 30
+
+  - id: cuota-critica
+    metric: quota_max_used_percent
+    op: ">="
+    value: 99
+    for: 0
+    release: 95
+    release_for: 30
+    mood: alarmada
+    priority: 70
+
+  # --- agent-hub: fuente de datos caída ---
+  - id: agenthub-inaccesible
+    metric: agenthub_available
+    op: "=="
+    value: 0
+    for: 20
+    release: 1
+    release_for: 5
+    mood: error
+    priority: 95
+
+  # --- Inactividad: nada corriendo hace rato ---
+  - id: sin-actividad
+    metric: agenthub_active_jobs
+    op: "=="
+    value: 0
+    for: 600
+    release: 1
+    release_for: 0
+    mood: durmiendo
+    priority: 5
