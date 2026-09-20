@@ -202,8 +202,13 @@ class TestMascotaApp(unittest.TestCase):
         self.assertEqual(len(rendered_frames), 1)
 
     def test_mood_from_rule_engine_reaches_renderer(self):
+        from library.moka_tss.rules import EvaluationResult
         mock_rule_engine = MagicMock()
-        mock_rule_engine.evaluate.return_value = "alarmada"
+        mock_rule_engine.evaluate_detailed.return_value = EvaluationResult(
+            mood="alarmada",
+            winning_rule_id="r1",
+            fired_rule_ids=["r1"]
+        )
         captured_moods = []
 
         def fake_renderer(snapshot, state, system, *, mood=None, **kwargs):
@@ -224,6 +229,7 @@ class TestMascotaApp(unittest.TestCase):
         app.step()
         self.assertEqual(captured_moods, ["alarmada"])
         self.assertEqual(app.last_mood, "alarmada")
+        self.assertEqual(app.last_rule, {"winning_rule_id": "r1", "fired": ["r1"]})
 
     def test_shutdown_stops_loop_server_and_port_leaves_no_threads(self):
         fake_server = MagicMock()
