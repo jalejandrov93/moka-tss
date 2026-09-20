@@ -49,9 +49,10 @@ class TestStatusSnapshot(unittest.TestCase):
             "system",
             "screen",
             "transmission",
+            "rule",
         }
         self.assertEqual(set(snapshot.keys()), expected_keys)
-        self.assertEqual(len(snapshot), 11)
+        self.assertEqual(len(snapshot), 12)
 
     def test_status_snapshot_json_serializable_and_types(self):
         """status_snapshot is JSON-serializable and maintains types."""
@@ -91,6 +92,9 @@ class TestStatusSnapshot(unittest.TestCase):
 
         # Transmission is None when no screen
         self.assertIsNone(snapshot["transmission"])
+
+        # Rule key is None initially
+        self.assertIsNone(snapshot["rule"])
 
         # When mood, system and screen are populated, serialization round-trip succeeds
         app.last_mood = "alerta"
@@ -191,28 +195,46 @@ class TestStatusSnapshot(unittest.TestCase):
         self.assertTrue(snapshot["codexbar_available"])
 
     def test_get_status_matches_status_snapshot(self):
-        """_get_status returns the 11 keys matching status_snapshot."""
+        """_get_status returns the 12 keys matching status_snapshot."""
         app = self._create_app()
         self.assertEqual(app._get_status(), app.status_snapshot())
-        self.assertEqual(len(app._get_status()), 11)
+        self.assertEqual(len(app._get_status()), 12)
 
     def test_step_tracks_mood_with_mocks(self):
         """step() tracks evaluated mood in self.last_mood and snapshot."""
         app = self._create_app()
         self.assertIsNone(app.last_mood)
         self.assertIsNone(app.status_snapshot()["mood"])
+        self.assertIsNone(app.last_rule)
+        self.assertIsNone(app.status_snapshot()["rule"])
 
-        app.rule_engine.evaluate.return_value = "alerta"
+        # Use evaluate_detailed to return EvaluationResult
+        from library.moka_tss.rules import EvaluationResult
+        mock_result = EvaluationResult(
+            mood="alerta",
+            winning_rule_id="r1",
+            fired_rule_ids=["r1", "r2"]
+        )
+        app.rule_engine.evaluate_detailed.return_value = mock_result
         app.step()
         self.assertEqual(app.last_mood, "alerta")
+        self.assertEqual(app.last_rule, {"winning_rule_id": "r1", "fired": ["r1", "r2"]})
         snapshot = app.status_snapshot()
         self.assertEqual(snapshot["mood"], "alerta")
+        self.assertEqual(snapshot["rule"], {"winning_rule_id": "r1", "fired": ["r1", "r2"]})
         self.assertEqual(json.loads(json.dumps(snapshot)), snapshot)
 
-        app.rule_engine.evaluate.return_value = "furia"
+        mock_result2 = EvaluationResult(
+            mood="furia",
+            winning_rule_id="r3",
+            fired_rule_ids=["r3"]
+        )
+        app.rule_engine.evaluate_detailed.return_value = mock_result2
         app.step()
         self.assertEqual(app.last_mood, "furia")
+        self.assertEqual(app.last_rule, {"winning_rule_id": "r3", "fired": ["r3"]})
         self.assertEqual(app.status_snapshot()["mood"], "furia")
+        self.assertEqual(app.status_snapshot()["rule"], {"winning_rule_id": "r3", "fired": ["r3"]})
 
 
 if __name__ == "__main__":
