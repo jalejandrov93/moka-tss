@@ -8,3 +8,19 @@ export interface StatusSnapshot {
   has_state: boolean;
   mood: string | null;
 }
+
+export interface Rule {
+  id: string;
+  metric: string;
+  op: string;
+  value: number;
+  mood: string;
+  priority: number;
+}
+
+export interface RulesPayload {
+  moods: string[];
+  default_mood: string | null;
+  rules: Rule[];
+}
+
