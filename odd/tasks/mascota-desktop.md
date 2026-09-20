@@ -30,12 +30,14 @@ Separar `MokaApp` en Core testeable + Host lifecycle + UI futura, dejando listo 
 - [x] MD-2.3 Mood end-to-end (job 64921189, agy). Merge `38e2c52`. Contrato ahora 8 claves (`mood`).
 - [x] MD-3.2 Esquema `services` en webconfig (job fc386f11, opencode). Merges `7e5dcad`+`468f812`. Hallazgo padre: C901=15 regresión → fix `91ec06c` extrayendo `_validate_services`; tests quedaron sin commitear y se rescataron en `c9cb400`. Verificación conjunta final: 303 tests (solo 8 Rev C), lint CI 0.
 - [x] MD-1.4 Sidecar ready-signal: `format_ready_line(port)` + `print(..., flush=True)` en `run()` tras config server. Hecho 2026-09-20 vía agy gemini-3.8-flash-high (job 29fac018). Commit `2e24370` mergeado a `feature/moka-tss`. Verificado por padre: 5 tests nuevos OK, suite 295 (solo 8 Rev C conocidos), flake8 limpio.
-- [x] MD-1.5 Tray menu Rust (job 499639d7, agy). Commit `31adaf5` mergeado. Verificado por padre contra API Tauri v2 (MenuBuilder/TrayIconBuilder/include_image doğru); single-instance ahora enfoca ventana. NO compilado (sin GTK en Linux) — compile pendiente en Windows.
+- [x] MD-1.5 Tray menu Rust (job 499639d7, agy). Commit `31adaf5` mergeado. Verificado por padre contra API Tauri v2 (MenuBuilder/TrayIconBuilder/include_image); single-instance ahora enfoca ventana. NO compilado (sin GTK en Linux) — compile pendiente en Windows.
 - [x] MD-2.1 Propuesta dashboard Fase 2 (job 211dedcc, agy recon). Hallazgo útil: `/api/status` (4 claves de `_get_status`) no coincide con `StatusSnapshot` (7 claves) → registrado como MD-2.2.
 - [x] MD-3.1 Diseño monitor WSL (job 4a6405f1, agy recon). Esquema YAML + cadencias (discovery 120-300s, TCP 5-10s, HTTP 15/60s) + mapeo Healthy/Slow/Stale/Unavailable guardado como insumo Fase 3.
 - [x] MD-1.6 Docs contrato sidecar (opencode crasheó pero dejó `desktop/SIDECAR.md` + sección README; padre corrigió 2 imprecisiones y commiteó). Merge `07177c4` (merge real tras recuperar commit 60b6c47).
 - [x] Audit MD-0..MD-1.4 adversarial (opencode). Veredicto padre: 0 bloqueos. #1 print-stdout es contrato deliberado (SIDECAR.md); #2/#3/#4 signal/stop preexistentes, anotados para Fase 8; #5 race lock teórica, sin acción.
 - [x] MD-2.2 Alinear `/api/status` con `status_snapshot()` (7 claves). Hecho 2026-09-20 vía agy gemini-3.8-flash-high (job 49d41fca). Commit `97569fe` mergeado. Verificado por padre: 50 tests foco OK, suite completa solo 8 Rev C, flake8 limpio. Nota: reporte del worker vacío pero el diff era correcto y mínimo.
+- [x] MD-1.7 Spawn sidecar en Rust (job 632f89fa, agy). Commit `a5e3ee1` (commiteado por padre). Mergeado. NO compilado — pendiente Windows.
+- [x] MD-2.4 Puerto descubierto en frontend (job 3ffd7c48, agy). Commit `b400fee` mergeado. Verificado por padre (tsc reproducido): `listen('moka-sidecar-ready')` con await en try/catch, fallback 8765, fetch inmediato.
 
 ## Progreso
 - 2026-09-20: creado documento, sin código aún. Rama `feature/moka-tss` @ `71b5b35`.
