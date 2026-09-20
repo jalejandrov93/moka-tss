@@ -113,6 +113,13 @@ Check `simple-program.py` as an example.
 
 ### [> Control the display from your code](https://github.com/mathoudebine/turing-smart-screen-python/wiki/Control-screen-from-your-own-code)
 
+## Mascota Desktop (Tauri, en desarrollo)
+
+Desktop shell in `desktop/` (Tauri v2 + React + TS). It launches Python as a sidecar (`moka.py --no-tray`), waits for the `MOKA_READY port=<p>` stdout signal, and polls `GET /api/status` every 2s.
+
+* Contract: [`desktop/SIDECAR.md`](desktop/SIDECAR.md) (ports 8765 panel / 8787 codexbar / 7777 agent-hub).
+* Status: in development; Rust-side validation is Windows-only for now.
+
 ## Troubleshooting
 If you have trouble running the program as described in the wiki, please check [open/closed issues](https://github.com/mathoudebine/turing-smart-screen-python/issues) & [the wiki Troubleshooting page](https://github.com/mathoudebine/turing-smart-screen-python/wiki/Troubleshooting)
 
