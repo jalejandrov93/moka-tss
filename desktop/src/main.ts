@@ -1,6 +1,8 @@
+import { listen } from "@tauri-apps/api/event";
 import type { StatusSnapshot } from "./types";
 
-const STATUS_URL = "http://127.0.0.1:8765/api/status";
+const DEFAULT_PORT = 8765;
+let statusUrl = `http://127.0.0.1:${DEFAULT_PORT}/api/status`;
 const POLL_INTERVAL_MS = 2000;
 
 function renderStatus(status: StatusSnapshot): void {
@@ -38,7 +40,7 @@ function renderError(error: unknown): void {
 
 async function fetchStatus(): Promise<void> {
   try {
-    const response = await fetch(STATUS_URL);
+    const response = await fetch(statusUrl);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -49,5 +51,21 @@ async function fetchStatus(): Promise<void> {
   }
 }
 
-fetchStatus();
+async function setupSidecarListener(): Promise<void> {
+  try {
+    await listen<number>("moka-sidecar-ready", (event) => {
+      const port = event.payload;
+      if (typeof port === "number" && port > 0) {
+        statusUrl = `http://127.0.0.1:${port}/api/status`;
+        void fetchStatus();
+      }
+    });
+  } catch (err) {
+    console.warn("Outside Tauri or failed to listen to moka-sidecar-ready, falling back to 8765:", err);
+  }
+}
+
+void setupSidecarListener();
+void fetchStatus();
 setInterval(fetchStatus, POLL_INTERVAL_MS);
+
