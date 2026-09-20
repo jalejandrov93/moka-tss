@@ -1,0 +1,11 @@
+{
+  "codexbar_url": "http://127.0.0.1:8787",
+  "agenthub_url": "http://127.0.0.1:7777",
+  "hidden_providers": [
+    "copilot",
+    "opencodego"
+  ],
+  "brightness": 85,
+  "orientation": "landscape",
+  "refresh_interval_seconds": 2.0
+}

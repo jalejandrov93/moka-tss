@@ -1,0 +1,279 @@
+/*
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * turing-smart-screen-python - a Python system monitor and library for USB-C displays
+ * Mascota fork - stylesheet for the local web configuration panel (D13)
+ *
+ * Design system: D9 "code dark + run green" (see odd/tasks/mascota.md).
+ * No webfont is fetched -- Cascadia Code ships with Windows already and the
+ * stack falls back to whatever monospace font the OS provides, so this
+ * keeps working offline inside a frozen .exe (T12).
+ */
+
+:root {
+  --bg: #0F172A;
+  --panel: #1E293B;
+  --line: #334155;
+  --text: #F8FAFC;
+  --accent: #22C55E;
+  --amber: #EAB308;
+  --red: #EF4444;
+  --font-mono: "Cascadia Code", "Fira Code", ui-monospace, "Consolas", "SFMono-Regular", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+#app-root {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 16px 32px;
+}
+
+.status-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  padding: 10px 16px;
+  margin: 0 -16px 24px;
+  font-size: 13px;
+}
+
+.status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--red);
+  display: inline-block;
+}
+
+.status-dot.is-connected {
+  background: var(--accent);
+}
+
+h1 {
+  font-size: 1.4rem;
+  margin: 0 0 4px;
+}
+
+h2 {
+  font-size: 1.1rem;
+  margin: 0 0 4px;
+}
+
+.hint {
+  color: #94A3B8;
+  font-size: 13px;
+  margin-top: 0;
+}
+
+.message {
+  min-height: 1.4em;
+  font-size: 13px;
+}
+
+.message[data-kind="ok"] {
+  color: var(--accent);
+}
+
+.message[data-kind="error"] {
+  color: var(--red);
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 0 0 20px;
+}
+
+fieldset.panel {
+  min-width: 0;
+}
+
+legend {
+  padding: 0 6px;
+  font-weight: 600;
+}
+
+label {
+  display: block;
+  margin: 12px 0 4px;
+  font-size: 13px;
+  color: #CBD5E1;
+}
+
+input[type="text"],
+input[type="url"],
+input[type="number"],
+select {
+  width: 100%;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+input[type="range"] {
+  flex: 1;
+  accent-color: var(--accent);
+}
+
+.range-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.range-row output {
+  min-width: 3ch;
+  text-align: right;
+}
+
+/* Visible focus state for every interactive element: an interface nobody
+   can drive with a keyboard is not "amigable". */
+input:focus-visible,
+select:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.providers-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.providers-list label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+button {
+  background: var(--accent);
+  color: #052e16;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+button:hover {
+  filter: brightness(1.1);
+}
+
+button#add-rule-button,
+button#save-rules-button {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+
+button.danger {
+  background: var(--red);
+  color: var(--text);
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.rules-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.rules-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.rules-table th,
+.rules-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 6px 4px;
+  text-align: left;
+}
+
+.rules-table input,
+.rules-table select {
+  width: 100%;
+  min-width: 5ch;
+  padding: 4px 6px;
+  font-size: 13px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Small windows: stack the endpoints/providers/display panels and let the
+   rules table scroll horizontally instead of squeezing every column. */
+@container (max-width: 480px) {
+  .rules-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .rules-meta {
+    grid-template-columns: 1fr;
+  }
+  .rules-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+main {
+  container-type: inline-size;
+}
