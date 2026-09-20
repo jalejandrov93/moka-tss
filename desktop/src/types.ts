@@ -1,3 +1,15 @@
+export interface SystemTelemetry {
+  cpu: number | null;
+  ram: number | null;
+  gpu: number | null;
+}
+
+export interface ScreenInfo {
+  present: boolean;
+  simulate: boolean;
+  brightness: number;
+}
+
 export interface StatusSnapshot {
   tick: number;
   running: boolean;
@@ -7,6 +19,8 @@ export interface StatusSnapshot {
   has_snapshot: boolean;
   has_state: boolean;
   mood: string | null;
+  system?: SystemTelemetry;
+  screen?: ScreenInfo;
 }
 
 export interface Rule {

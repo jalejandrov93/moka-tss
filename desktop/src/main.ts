@@ -238,6 +238,156 @@ function renderMascotaCard(): React.ReactElement {
   );
 }
 
+function renderMetricBar(label: string, value: number | null | undefined): React.ReactElement {
+  const isAvailable = value !== null && value !== undefined && !Number.isNaN(value);
+  const displayVal = isAvailable ? `${Number(value.toFixed(1))}%` : "n/d";
+  const widthPercent = isAvailable ? Math.min(100, Math.max(0, value)) : 0;
+
+  let colorClass = "bg-slate-700";
+  if (isAvailable) {
+    if (value >= 90) {
+      colorClass = "bg-red-500";
+    } else if (value >= 75) {
+      colorClass = "bg-amber-500";
+    } else {
+      colorClass = "bg-emerald-500";
+    }
+  }
+
+  return React.createElement(
+    "div",
+    { className: "space-y-1.5" },
+    React.createElement(
+      "div",
+      { className: "flex justify-between text-xs font-mono text-slate-300" },
+      React.createElement("span", { className: "font-semibold text-slate-400 uppercase tracking-wider" }, label),
+      React.createElement("span", null, displayVal)
+    ),
+    React.createElement(
+      "div",
+      { className: "h-2 w-full overflow-hidden rounded-full bg-slate-800" },
+      React.createElement("div", {
+        className: `h-full rounded-full transition-all duration-300 ${colorClass}`,
+        style: { width: `${widthPercent}%` },
+      })
+    )
+  );
+}
+
+function renderSistemaCard(): React.ReactElement {
+  if (statusError) {
+    return React.createElement(
+      Card,
+      { className: "w-full max-w-md bg-slate-950 text-slate-50 border-red-900 shadow-xl" },
+      React.createElement(
+        CardHeader,
+        null,
+        React.createElement(
+          CardTitle,
+          { className: "text-xl font-bold tracking-tight text-red-400" },
+          "Sistema"
+        )
+      ),
+      React.createElement(
+        CardContent,
+        { className: "space-y-2 font-mono text-sm text-red-400" },
+        React.createElement(
+          "p",
+          null,
+          `Error fetching status: ${statusError instanceof Error ? statusError.message : String(statusError)}`
+        )
+      )
+    );
+  }
+
+  if (!currentStatus) {
+    return React.createElement(
+      Card,
+      { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+      React.createElement(
+        CardHeader,
+        null,
+        React.createElement(
+          CardTitle,
+          { className: "text-xl font-bold tracking-tight text-slate-50" },
+          "Sistema"
+        )
+      ),
+      React.createElement(
+        CardContent,
+        { className: "space-y-4 font-mono text-sm text-slate-400" },
+        "Cargando sistema..."
+      )
+    );
+  }
+
+  const system = currentStatus.system;
+  const screen = currentStatus.screen;
+
+  let turingStateText = "No presente";
+  let turingBadgeVariant: "success" | "secondary" | "destructive" = "destructive";
+
+  if (screen?.simulate) {
+    turingStateText = "Simulada";
+    turingBadgeVariant = "secondary";
+  } else if (screen?.present) {
+    turingStateText = "Conectada";
+    turingBadgeVariant = "success";
+  } else {
+    turingStateText = "No presente";
+    turingBadgeVariant = "destructive";
+  }
+
+  const brightnessDisplay =
+    screen && typeof screen.brightness === "number"
+      ? `${screen.brightness}%`
+      : "n/d";
+
+  return React.createElement(
+    Card,
+    { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+    React.createElement(
+      CardHeader,
+      null,
+      React.createElement(
+        CardTitle,
+        { className: "text-xl font-bold tracking-tight text-slate-50" },
+        "Sistema"
+      )
+    ),
+    React.createElement(
+      CardContent,
+      { className: "space-y-4" },
+      React.createElement(
+        "div",
+        { className: "space-y-3" },
+        renderMetricBar("CPU", system?.cpu),
+        renderMetricBar("RAM", system?.ram),
+        renderMetricBar("GPU", system?.gpu)
+      ),
+      React.createElement(
+        "div",
+        { className: "flex items-center justify-between pt-3 border-t border-slate-800 text-sm" },
+        React.createElement(
+          "div",
+          { className: "flex items-center gap-2" },
+          React.createElement("span", { className: "text-slate-400 font-medium" }, "Turing"),
+          React.createElement(
+            Badge,
+            { variant: turingBadgeVariant },
+            turingStateText
+          )
+        ),
+        React.createElement(
+          "span",
+          { className: "font-mono text-xs text-slate-300" },
+          `Brillo: ${brightnessDisplay}`
+        )
+      )
+    )
+  );
+}
+
 function renderApp(): void {
   const currentRoot = getRoot();
   if (!currentRoot) return;
@@ -248,9 +398,10 @@ function renderApp(): void {
       { className: "min-h-screen bg-slate-950 text-slate-50 p-6 flex justify-center items-start" },
       React.createElement(
         "div",
-        { className: "grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl" },
+        { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl" },
         renderServiciosCard(),
-        renderMascotaCard()
+        renderMascotaCard(),
+        renderSistemaCard()
       )
     )
   );
