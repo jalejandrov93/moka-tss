@@ -11,6 +11,7 @@ web configuration server, and the system tray icon.
 """
 
 import logging
+import math
 import signal
 import sys
 import threading
@@ -90,6 +91,19 @@ def default_renderer(
     return render_module.render(
         snapshot, state, system, sprites=sprites, mood=mood, tick=tick, **kwargs
     )
+
+
+def _sanitize_metric(val: Any) -> Optional[float]:
+    """Convert metric to float, turning absent, non-numeric, or NaN values into None."""
+    if val is None or isinstance(val, bool):
+        return None
+    try:
+        f = float(val)
+        if math.isnan(f):
+            return None
+        return f
+    except (TypeError, ValueError):
+        return None
 
 
 class MokaApp:
@@ -178,6 +192,11 @@ class MokaApp:
 
     def status_snapshot(self) -> Dict[str, Any]:
         """Return a JSON-serializable snapshot of application state."""
+        system_data = self.last_system if isinstance(self.last_system, dict) else {}
+        raw_gpu = system_data.get("gpu")
+        if isinstance(raw_gpu, dict):
+            raw_gpu = raw_gpu.get("util")
+
         return {
             "tick": int(self.tick_count),
             "running": bool(self._running),
@@ -187,6 +206,16 @@ class MokaApp:
             "has_snapshot": self.last_snapshot is not None,
             "has_state": self.last_state is not None,
             "mood": self.last_mood,
+            "system": {
+                "cpu": _sanitize_metric(system_data.get("cpu")),
+                "ram": _sanitize_metric(system_data.get("ram")),
+                "gpu": _sanitize_metric(raw_gpu),
+            },
+            "screen": {
+                "present": self.screen is not None,
+                "simulate": bool(self.simulate),
+                "brightness": int(self.brightness),
+            },
         }
 
     def _poll_local_sensors(self, now: float) -> None:

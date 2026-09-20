@@ -46,16 +46,18 @@ class TestStatusSnapshot(unittest.TestCase):
             "has_snapshot",
             "has_state",
             "mood",
+            "system",
+            "screen",
         }
         self.assertEqual(set(snapshot.keys()), expected_keys)
-        self.assertEqual(len(snapshot), 8)
+        self.assertEqual(len(snapshot), 10)
 
     def test_status_snapshot_json_serializable_and_types(self):
         """status_snapshot is JSON-serializable and maintains types."""
         app = self._create_app()
         snapshot = app.status_snapshot()
 
-        # Serialization round-trip with default None mood
+        # Serialization round-trip with default None mood and empty system
         serialized = json.dumps(snapshot)
         deserialized = json.loads(serialized)
         self.assertEqual(deserialized, snapshot)
@@ -70,12 +72,42 @@ class TestStatusSnapshot(unittest.TestCase):
         self.assertIs(type(snapshot["has_state"]), bool)
         self.assertIsNone(snapshot["mood"])
 
-        # When mood is populated, serialization round-trip succeeds
+        # System telemetry types and defaults
+        self.assertIs(type(snapshot["system"]), dict)
+        self.assertEqual(set(snapshot["system"].keys()), {"cpu", "ram", "gpu"})
+        self.assertIsNone(snapshot["system"]["cpu"])
+        self.assertIsNone(snapshot["system"]["ram"])
+        self.assertIsNone(snapshot["system"]["gpu"])
+
+        # Screen status types and defaults
+        self.assertIs(type(snapshot["screen"]), dict)
+        self.assertEqual(set(snapshot["screen"].keys()), {"present", "simulate", "brightness"})
+        self.assertIs(type(snapshot["screen"]["present"]), bool)
+        self.assertIs(type(snapshot["screen"]["simulate"]), bool)
+        self.assertIs(type(snapshot["screen"]["brightness"]), int)
+        self.assertFalse(snapshot["screen"]["present"])
+        self.assertFalse(snapshot["screen"]["simulate"])
+
+        # When mood, system and screen are populated, serialization round-trip succeeds
         app.last_mood = "alerta"
+        app.last_system = {"cpu": 15.5, "ram": 55.0, "gpu": {"util": 22.0}}
+        app.screen = MagicMock()
+        app.simulate = True
+        app.brightness = 90
         populated = app.status_snapshot()
         self.assertEqual(populated["mood"], "alerta")
         self.assertIs(type(populated["mood"]), str)
+        self.assertEqual(populated["system"], {"cpu": 15.5, "ram": 55.0, "gpu": 22.0})
+        self.assertEqual(populated["screen"], {"present": True, "simulate": True, "brightness": 90})
         self.assertEqual(json.loads(json.dumps(populated)), populated)
+
+        # NaN values in system sensors are converted to None for valid JSON
+        app.last_system = {"cpu": float("nan"), "ram": 42.0, "gpu": float("nan")}
+        nan_snapshot = app.status_snapshot()
+        self.assertIsNone(nan_snapshot["system"]["cpu"])
+        self.assertEqual(nan_snapshot["system"]["ram"], 42.0)
+        self.assertIsNone(nan_snapshot["system"]["gpu"])
+        self.assertEqual(json.loads(json.dumps(nan_snapshot)), nan_snapshot)
 
     def test_status_snapshot_reflects_data_flags(self):
         """status_snapshot reflects presence of system, snapshot, and state."""
@@ -134,10 +166,10 @@ class TestStatusSnapshot(unittest.TestCase):
         self.assertTrue(snapshot["codexbar_available"])
 
     def test_get_status_matches_status_snapshot(self):
-        """_get_status returns the 8 keys matching status_snapshot."""
+        """_get_status returns the 10 keys matching status_snapshot."""
         app = self._create_app()
         self.assertEqual(app._get_status(), app.status_snapshot())
-        self.assertEqual(len(app._get_status()), 8)
+        self.assertEqual(len(app._get_status()), 10)
 
     def test_step_tracks_mood_with_mocks(self):
         """step() tracks evaluated mood in self.last_mood and snapshot."""

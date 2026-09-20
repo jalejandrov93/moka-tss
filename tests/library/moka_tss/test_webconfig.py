@@ -262,6 +262,8 @@ class StatusEndpointTests(WebConfigServerTestCase):
         self.assertIn("has_snapshot", data)
         self.assertIn("has_state", data)
         self.assertIn("mood", data)
+        self.assertIn("system", data)
+        self.assertIn("screen", data)
         self.assertIsInstance(data["has_system"], bool)
         self.assertIsInstance(data["has_snapshot"], bool)
         self.assertIsInstance(data["has_state"], bool)
@@ -275,8 +277,11 @@ class StatusEndpointTests(WebConfigServerTestCase):
             "has_snapshot",
             "has_state",
             "mood",
+            "system",
+            "screen",
         }
         self.assertEqual(set(data.keys()), expected_keys)
+        self.assertEqual(len(data), 10)
 
 
 class AtomicWriteTests(WebConfigServerTestCase):
