@@ -152,9 +152,32 @@ driver PawnIO; desinstalar la app china; cualquier operación remota.
 
 - **Licencia GPL-3.0-or-later.** Mantener avisos, cabecera `SPDX-License-Identifier: GPL-3.0-or-later`
   en cada `.py` nuevo, marcar archivos modificados. Uso privado no obliga a distribuir.
-- **Python 3.14 NO está soportado en Windows** por el upstream (`pythoncheck.py`: MIN 3.9 /
-  MAX 3.14, pero el release 3.10.0 dice "Allow Python 3.14 for OS != Windows"). El default del
-  usuario es 3.14 → **usar `C:\Python313`**.
+- **Python: 3.9 a 3.14, sin distinción de plataforma.** *(Corregido 2026-09-19: una nota de
+  release vieja decía "Allow Python 3.14 for OS != Windows" y de ahí saqué que 3.14 no servía
+  en Windows. Es falso hoy.)* `library/pythoncheck.py:26-27` tiene un rango plano
+  `MIN_PYTHON=(3,9)` / `MAX_PYTHON=(3,14)` **sin ninguna rama por plataforma**, y
+  `.github/workflows/generate-windows-packages.yml:26` construye los paquetes de Windows con
+  **Python 3.14** sobre `windows-latest`. Igual seguimos con `C:\Python313`, donde el venv ya
+  está armado y todo `requirements.txt` instaló limpio: no hay razón para moverlo.
+
+### Trampas de empaquetado verificadas (T12)
+
+- **`sys._MEIPASS` no se maneja en ningún lado.** La ruta base sale de
+  `Path(__file__).parent.parent` en `library/config.py:39`, que funciona sólo porque el spec
+  fija `contents_directory='.'`.
+- **Dos rutas relativas al directorio actual que rompen con doble clic**, porque un `.exe`
+  lanzado desde un acceso directo no arranca en la carpeta de la app:
+  `library/sensors/sensors_librehardwaremonitor.py:41` y `:45` arman las rutas de las DLL con
+  `os.getcwd()`, y `theme-editor.py:85` abre `res/docs/error-in-theme.png` con ruta desnuda.
+- **El "Configure" de la bandeja mata la app.** `main.py:121-134` lanza `configure.exe` como
+  subproceso y acto seguido llama a `clean_stop()`. Para Mascota eso no sirve: el panel de
+  configuración (D13) tiene que poder abrirse **sin apagar el dashboard**.
+- El spec produce tres ejecutables *onedir* unidos por `COLLECT` en
+  `dist/turing-system-monitor/`, y después Inno Setup arma el instalador
+  (`tools/windows-installer/turing-system-monitor.iss`), que además ofrece instalar el driver
+  PawnIO en silencio. `datas=[('res','res'), ('config.yaml','.'), ('external','external')]`.
+- Sin firma de código (`codesign_identity=None`): SmartScreen y los antivirus heurísticos
+  suelen marcar binarios sin firmar que empaquetan Python embebido y DLL de hardware.
 - **LibreHardwareMonitor exige admin** (`IsUserAnAdmin()==0` → error y salida), desbloqueo de DLL
   y driver PawnIO. Conflictos reportados con anti-cheat. Sin admin: hay RAM/disco/red por psutil,
   pero **no hay temperatura de CPU ni GPU**.
