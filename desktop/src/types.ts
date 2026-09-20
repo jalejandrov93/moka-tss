@@ -6,4 +6,5 @@ export interface StatusSnapshot {
   has_system: boolean;
   has_snapshot: boolean;
   has_state: boolean;
+  mood: string | null;
 }

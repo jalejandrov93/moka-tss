@@ -261,9 +261,11 @@ class StatusEndpointTests(WebConfigServerTestCase):
         self.assertIn("has_system", data)
         self.assertIn("has_snapshot", data)
         self.assertIn("has_state", data)
+        self.assertIn("mood", data)
         self.assertIsInstance(data["has_system"], bool)
         self.assertIsInstance(data["has_snapshot"], bool)
         self.assertIsInstance(data["has_state"], bool)
+        self.assertIsNone(data["mood"])
         expected_keys = {
             "tick",
             "running",
@@ -272,6 +274,7 @@ class StatusEndpointTests(WebConfigServerTestCase):
             "has_system",
             "has_snapshot",
             "has_state",
+            "mood",
         }
         self.assertEqual(set(data.keys()), expected_keys)
 

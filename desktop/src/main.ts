@@ -18,6 +18,7 @@ function renderStatus(status: StatusSnapshot): void {
         <li><strong>has_system:</strong> ${status.has_system}</li>
         <li><strong>has_snapshot:</strong> ${status.has_snapshot}</li>
         <li><strong>has_state:</strong> ${status.has_state}</li>
+        <li><strong>mood:</strong> ${status.mood}</li>
       </ul>
     </div>
   `;

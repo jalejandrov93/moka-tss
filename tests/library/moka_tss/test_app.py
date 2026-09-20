@@ -223,6 +223,7 @@ class TestMascotaApp(unittest.TestCase):
 
         app.step()
         self.assertEqual(captured_moods, ["alarmada"])
+        self.assertEqual(app.last_mood, "alarmada")
 
     def test_shutdown_stops_loop_server_and_port_leaves_no_threads(self):
         fake_server = MagicMock()

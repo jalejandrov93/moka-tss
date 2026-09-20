@@ -45,16 +45,17 @@ class TestStatusSnapshot(unittest.TestCase):
             "has_system",
             "has_snapshot",
             "has_state",
+            "mood",
         }
         self.assertEqual(set(snapshot.keys()), expected_keys)
-        self.assertEqual(len(snapshot), 7)
+        self.assertEqual(len(snapshot), 8)
 
     def test_status_snapshot_json_serializable_and_types(self):
         """status_snapshot is JSON-serializable and maintains types."""
         app = self._create_app()
         snapshot = app.status_snapshot()
 
-        # Serialization round-trip
+        # Serialization round-trip with default None mood
         serialized = json.dumps(snapshot)
         deserialized = json.loads(serialized)
         self.assertEqual(deserialized, snapshot)
@@ -67,6 +68,14 @@ class TestStatusSnapshot(unittest.TestCase):
         self.assertIs(type(snapshot["has_system"]), bool)
         self.assertIs(type(snapshot["has_snapshot"]), bool)
         self.assertIs(type(snapshot["has_state"]), bool)
+        self.assertIsNone(snapshot["mood"])
+
+        # When mood is populated, serialization round-trip succeeds
+        app.last_mood = "alerta"
+        populated = app.status_snapshot()
+        self.assertEqual(populated["mood"], "alerta")
+        self.assertIs(type(populated["mood"]), str)
+        self.assertEqual(json.loads(json.dumps(populated)), populated)
 
     def test_status_snapshot_reflects_data_flags(self):
         """status_snapshot reflects presence of system, snapshot, and state."""
@@ -125,10 +134,28 @@ class TestStatusSnapshot(unittest.TestCase):
         self.assertTrue(snapshot["codexbar_available"])
 
     def test_get_status_matches_status_snapshot(self):
-        """_get_status returns the 7 keys matching status_snapshot."""
+        """_get_status returns the 8 keys matching status_snapshot."""
         app = self._create_app()
         self.assertEqual(app._get_status(), app.status_snapshot())
-        self.assertEqual(len(app._get_status()), 7)
+        self.assertEqual(len(app._get_status()), 8)
+
+    def test_step_tracks_mood_with_mocks(self):
+        """step() tracks evaluated mood in self.last_mood and snapshot."""
+        app = self._create_app()
+        self.assertIsNone(app.last_mood)
+        self.assertIsNone(app.status_snapshot()["mood"])
+
+        app.rule_engine.evaluate.return_value = "alerta"
+        app.step()
+        self.assertEqual(app.last_mood, "alerta")
+        snapshot = app.status_snapshot()
+        self.assertEqual(snapshot["mood"], "alerta")
+        self.assertEqual(json.loads(json.dumps(snapshot)), snapshot)
+
+        app.rule_engine.evaluate.return_value = "furia"
+        app.step()
+        self.assertEqual(app.last_mood, "furia")
+        self.assertEqual(app.status_snapshot()["mood"], "furia")
 
 
 if __name__ == "__main__":
