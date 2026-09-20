@@ -66,6 +66,7 @@ logger.setLevel(logging.DEBUG)
 
 # Hardcode specific configuration for theme editor
 from library import config
+from library.mascota.paths import resource_path
 
 config.CONFIG_DATA["config"]["HW_SENSORS"] = "STATIC"  # For theme editor always use stub data
 config.CONFIG_DATA["config"]["THEME"] = sys.argv[1]  # Theme is given as argument
@@ -82,7 +83,7 @@ RGB_LED_MARGIN = 12
 # Resize editor if display is too big (e.g. 8.8" displays are 1920x480), can be changed later by zoom buttons
 RESIZE_FACTOR = 2 if (display.lcd.get_width() > 1000 or display.lcd.get_height() > 1000) else 1
 
-ERROR_IN_THEME = Image.open("res/docs/error-in-theme.png")
+ERROR_IN_THEME = Image.open(resource_path("res", "docs", "error-in-theme.png"))
 
 
 def refresh_theme():
