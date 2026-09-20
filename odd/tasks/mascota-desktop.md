@@ -66,3 +66,6 @@ Separar `MokaApp` en Core testeable + Host lifecycle + UI futura, dejando listo 
 - [ ] MD-9.1 Flag --diagnostics vía Jules (job cd6f0b92).
 - [x] MD-5.1 Rule info en snapshot (opencode nemotron, agy falló 2 veces). Commit mergeado (mensaje normalizado a feat(moka)). Verificado por padre: step usa evaluate_detailed, _evaluate_mood intacto, 62 tests OK, suite solo 8 Rev C, lint CI 0. Contrato ahora 12 claves.
 - [x] MD-9.1 Flag --diagnostics vía Jules (PR #4, merge commit `10c6587`). Verificado por padre en worktree temporal (test + lint + ejecución real sin hardware) antes de fusionar.
+- [ ] MD-4.5 Info pantalla en tarjeta (job df282dcd, agy, md-45-screenctl).
+- [ ] MD-5.2 Tarjeta estado mascota (job eea2ef01, opencode, md-52-mascot).
+- [ ] MD-6.1 Motor reglas TS (job 47280ccf, agy, md-61-rulets).
