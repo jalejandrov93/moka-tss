@@ -336,6 +336,47 @@ class ServerLifecycleTests(unittest.TestCase):
                 self.assertGreater(server.port, 0)
 
 
+class ServicesConfigTests(unittest.TestCase):
+    def _base(self, **overrides):
+        data = dict(webconfig.DEFAULT_SETTINGS)
+        data.update(overrides)
+        return data
+
+    def test_default_services_is_empty_list(self):
+        self.assertEqual(webconfig.DEFAULT_SETTINGS["services"], [])
+        normalized = webconfig.validate_config(self._base())
+        self.assertEqual(normalized["services"], [])
+
+    def test_valid_service_passes(self):
+        services = [{"name": "agenthub", "port": 7777, "health": "/health"}]
+        normalized = webconfig.validate_config(self._base(services=services))
+        self.assertEqual(normalized["services"], services)
+
+    def test_port_out_of_range_is_rejected(self):
+        services = [{"name": "agenthub", "port": 70000, "health": "/health"}]
+        with self.assertRaises(webconfig.ConfigValidationError) as ctx:
+            webconfig.validate_config(self._base(services=services))
+        message = str(ctx.exception)
+        self.assertIn("services[0]", message)
+        self.assertIn("port", message)
+
+    def test_health_without_slash_is_rejected(self):
+        services = [{"name": "agenthub", "port": 7777, "health": "health"}]
+        with self.assertRaises(webconfig.ConfigValidationError) as ctx:
+            webconfig.validate_config(self._base(services=services))
+        message = str(ctx.exception)
+        self.assertIn("services[0]", message)
+        self.assertIn("health", message)
+
+    def test_empty_name_is_rejected(self):
+        services = [{"name": "  ", "port": 7777, "health": "/health"}]
+        with self.assertRaises(webconfig.ConfigValidationError) as ctx:
+            webconfig.validate_config(self._base(services=services))
+        message = str(ctx.exception)
+        self.assertIn("services[0]", message)
+        self.assertIn("name", message)
+
+
 class RulesConfigErrorImportTests(unittest.TestCase):
     """Sanity check that webconfig relies on rules.py's own validation error,
     never redefining or shadowing it (see module contract)."""
