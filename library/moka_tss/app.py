@@ -173,21 +173,15 @@ class MokaApp:
             return None
 
     def _get_status(self) -> Dict[str, Any]:
-        return {
-            "tick": self.tick_count,
-            "agenthub_available": self.agenthub_available,
-            "codexbar_available": self.codexbar_available,
-            "running": self._running,
-        }
+        return self.status_snapshot()
 
     def status_snapshot(self) -> Dict[str, Any]:
         """Return a JSON-serializable snapshot of application state."""
-        status = self._get_status()
         return {
-            "tick": int(status["tick"]),
-            "running": bool(status["running"]),
-            "agenthub_available": bool(status["agenthub_available"]),
-            "codexbar_available": bool(status["codexbar_available"]),
+            "tick": int(self.tick_count),
+            "running": bool(self._running),
+            "agenthub_available": bool(self.agenthub_available),
+            "codexbar_available": bool(self.codexbar_available),
             "has_system": self.last_system is not None,
             "has_snapshot": self.last_snapshot is not None,
             "has_state": self.last_state is not None,

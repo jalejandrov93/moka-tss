@@ -124,6 +124,12 @@ class TestStatusSnapshot(unittest.TestCase):
         self.assertTrue(snapshot["agenthub_available"])
         self.assertTrue(snapshot["codexbar_available"])
 
+    def test_get_status_matches_status_snapshot(self):
+        """_get_status returns the 7 keys matching status_snapshot."""
+        app = self._create_app()
+        self.assertEqual(app._get_status(), app.status_snapshot())
+        self.assertEqual(len(app._get_status()), 7)
+
 
 if __name__ == "__main__":
     unittest.main()

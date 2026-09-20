@@ -236,6 +236,45 @@ class StatusEndpointTests(WebConfigServerTestCase):
         self.assertTrue(data["connected"])
         self.assertEqual(data["last_refresh"], 42.0)
 
+    def test_get_status_includes_system_snapshot_and_state_flags(self):
+        from unittest.mock import MagicMock
+        from library.moka_tss.app import MokaApp
+
+        app = MokaApp(
+            serial_port=None,
+            screen=None,
+            read_sensors=MagicMock(return_value={}),
+            agenthub_client=MagicMock(),
+            codexbar_client=MagicMock(),
+            rule_engine=MagicMock(),
+            sprites=None,
+            renderer=MagicMock(),
+            tray_enabled=False,
+            simulate=True,
+            instance_lock=MagicMock(),
+        )
+        self.server._httpd.status_provider = app._get_status
+
+        status, body = self._get("/api/status")
+        self.assertEqual(status, 200)
+        data = json.loads(body)
+        self.assertIn("has_system", data)
+        self.assertIn("has_snapshot", data)
+        self.assertIn("has_state", data)
+        self.assertIsInstance(data["has_system"], bool)
+        self.assertIsInstance(data["has_snapshot"], bool)
+        self.assertIsInstance(data["has_state"], bool)
+        expected_keys = {
+            "tick",
+            "running",
+            "agenthub_available",
+            "codexbar_available",
+            "has_system",
+            "has_snapshot",
+            "has_state",
+        }
+        self.assertEqual(set(data.keys()), expected_keys)
+
 
 class AtomicWriteTests(WebConfigServerTestCase):
     def test_failed_write_leaves_previous_config_intact(self):
