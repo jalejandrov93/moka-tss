@@ -63,3 +63,12 @@ export interface WslStatus {
   distros: string[];
 }
 
+export interface AppConfig {
+  brightness?: number;
+  orientation?: string;
+  refresh_interval_seconds?: number;
+  services?: unknown[];
+  hidden_providers?: string[];
+  [key: string]: unknown;
+}
+
