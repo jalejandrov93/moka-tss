@@ -47,7 +47,71 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         action="store_true",
         help="Modo simulación: guarda capturas en screencap.png sin hardware",
     )
+    parser.add_argument(
+        "--diagnostics",
+        action="store_true",
+        help="Generate a JSON diagnostic report and exit",
+    )
     return parser.parse_args(argv)
+
+
+def _run_diagnostics(args: argparse.Namespace) -> None:
+    import json
+    import socket
+    import importlib
+
+    def check_port(p: int) -> bool:
+        try:
+            with socket.create_connection(("127.0.0.1", p), timeout=0.5):
+                return True
+        except OSError:
+            return False
+
+    def check_import(m: str) -> bool:
+        try:
+            importlib.import_module(m)
+            return True
+        except ImportError:
+            return False
+
+    dummy_app = MokaApp(
+        serial_port=None,
+        tick_interval=args.tick,
+        brightness=args.brightness,
+        tray_enabled=False,
+        simulate=True,
+        simulate_output_path=Path("screencap.png"),
+    )
+
+    report = {
+        "app_name": "MOKA TSS",
+        "python_version": sys.version,
+        "args": {
+            "tick_interval": args.tick,
+            "brightness": args.brightness,
+            "port": args.port,
+        },
+        "status_snapshot": dummy_app.status_snapshot(),
+        "config_files": {
+            "config.yaml": Path("config.yaml").exists(),
+            "res/moka_tss/rules.yaml": Path("res/moka_tss/rules.yaml").exists(),
+            "res/moka_tss/webconfig.json": Path("res/moka_tss/webconfig.json").exists(),
+        },
+        "ports": {
+            "codexbar": check_port(8787),
+            "agenthub": check_port(7777),
+            "panel": check_port(8765),
+        },
+        "imports": {
+            "library.moka_tss.host": check_import("library.moka_tss.host"),
+            "library.moka_tss.app": check_import("library.moka_tss.app"),
+            "library.moka_tss.render": check_import("library.moka_tss.render"),
+            "library.moka_tss.rules": check_import("library.moka_tss.rules"),
+            "library.moka_tss.screen": check_import("library.moka_tss.screen"),
+        }
+    }
+
+    print(json.dumps(report, indent=2))
 
 
 def main(argv: Optional[List[str]] = None) -> None:
@@ -60,7 +124,12 @@ def main(argv: Optional[List[str]] = None) -> None:
     )
     logger = logging.getLogger("moka_tss")
 
+    if args.diagnostics:
+        _run_diagnostics(args)
+        return
+
     serial_port = None
+
     if not args.simulate:
         try:
             import serial
