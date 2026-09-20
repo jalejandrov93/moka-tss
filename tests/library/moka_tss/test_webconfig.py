@@ -26,6 +26,8 @@ never touching the real res/mascota/ tree.
 
 import http.client
 import json
+import socket
+import socketserver
 import threading
 import unittest
 from pathlib import Path
@@ -50,6 +52,15 @@ INVALID_RULES = {
         {"id": "cpu_high", "metric": "cpu_percent", "op": ">=", "value": 90, "mood": "no_existe"},
     ],
 }
+
+
+class _EchoHandler(socketserver.BaseRequestHandler):
+    def handle(self):
+        pass
+
+
+class _TCPServer(socketserver.TCPServer):
+    allow_reuse_address = True
 
 
 class WebConfigServerTestCase(unittest.TestCase):
@@ -282,6 +293,103 @@ class StatusEndpointTests(WebConfigServerTestCase):
         }
         self.assertEqual(set(data.keys()), expected_keys)
         self.assertEqual(len(data), 10)
+
+
+class ServicesEndpointTests(WebConfigServerTestCase):
+    def _start_tcp_server(self):
+        server = _TCPServer(("127.0.0.1", 0), _EchoHandler)
+        port = server.server_address[1]
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        return server, thread, port
+
+    def _stop_tcp_server(self, server, thread):
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2.0)
+
+    def _get_closed_port(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(("127.0.0.1", 0))
+            return s.getsockname()[1]
+
+    def test_get_services_empty_when_no_services(self):
+        status, body = self._get("/api/services")
+        self.assertEqual(status, 200)
+        data = json.loads(body)
+        self.assertEqual(data, [])
+
+    def test_get_services_open_port_reachable_true(self):
+        server, thread, port = self._start_tcp_server()
+        try:
+            services = [{"name": "echo_svc", "port": port, "health": "/health"}]
+            status, _ = self._post_json("/api/config", {"services": services})
+            self.assertEqual(status, 200)
+
+            status, body = self._get("/api/services")
+            self.assertEqual(status, 200)
+            data = json.loads(body)
+            self.assertEqual(len(data), 1)
+            self.assertEqual(data[0]["name"], "echo_svc")
+            self.assertEqual(data[0]["port"], port)
+            self.assertEqual(data[0]["health"], "/health")
+            self.assertTrue(data[0]["reachable"])
+            self.assertIsInstance(data[0]["latency_ms"], float)
+            self.assertGreaterEqual(data[0]["latency_ms"], 0.0)
+        finally:
+            self._stop_tcp_server(server, thread)
+
+    def test_get_services_closed_port_reachable_false(self):
+        closed_port = self._get_closed_port()
+        services = [{"name": "down_svc", "port": closed_port, "health": "/ping"}]
+        status, _ = self._post_json("/api/config", {"services": services})
+        self.assertEqual(status, 200)
+
+        status, body = self._get("/api/services")
+        self.assertEqual(status, 200)
+        data = json.loads(body)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["name"], "down_svc")
+        self.assertEqual(data[0]["port"], closed_port)
+        self.assertEqual(data[0]["health"], "/ping")
+        self.assertFalse(data[0]["reachable"])
+        self.assertIsNone(data[0]["latency_ms"])
+
+    def test_get_services_with_open_and_closed_ports(self):
+        server, thread, open_port = self._start_tcp_server()
+        closed_port = self._get_closed_port()
+        try:
+            services = [
+                {"name": "online_svc", "port": open_port, "health": "/health"},
+                {"name": "offline_svc", "port": closed_port, "health": "/status"},
+            ]
+            status, _ = self._post_json("/api/config", {"services": services})
+            self.assertEqual(status, 200)
+
+            status, body = self._get("/api/services")
+            self.assertEqual(status, 200)
+            data = json.loads(body)
+            self.assertEqual(len(data), 2)
+
+            self.assertEqual(data[0]["name"], "online_svc")
+            self.assertEqual(data[0]["port"], open_port)
+            self.assertEqual(data[0]["health"], "/health")
+            self.assertTrue(data[0]["reachable"])
+            self.assertIsInstance(data[0]["latency_ms"], float)
+            self.assertGreaterEqual(data[0]["latency_ms"], 0.0)
+
+            self.assertEqual(data[1]["name"], "offline_svc")
+            self.assertEqual(data[1]["port"], closed_port)
+            self.assertEqual(data[1]["health"], "/status")
+            self.assertFalse(data[1]["reachable"])
+            self.assertIsNone(data[1]["latency_ms"])
+        finally:
+            self._stop_tcp_server(server, thread)
+
+    def test_get_services_rejects_invalid_host(self):
+        status, body = self._get("/api/services", headers={"Host": "evil.example.com"})
+        self.assertEqual(status, 403)
+        self.assertIn("error", json.loads(body))
 
 
 class AtomicWriteTests(WebConfigServerTestCase):

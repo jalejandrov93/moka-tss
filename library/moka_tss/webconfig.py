@@ -71,6 +71,7 @@ from urllib.parse import urlparse
 import yaml
 
 from library.moka_tss.rules import RuleEngine, RulesConfigError
+from library.moka_tss.services import probe_services
 
 DEFAULT_HOST = "127.0.0.1"
 
@@ -360,6 +361,12 @@ class _ConfigRequestHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/status":
             self._send_json(HTTPStatus.OK, self.server.status_provider())
+            return
+        if path == "/api/services":
+            self._send_json(
+                HTTPStatus.OK,
+                probe_services(load_config(self.server.config_path).get("services", [])),
+            )
             return
 
         asset = STATIC_ASSETS.get(path)
