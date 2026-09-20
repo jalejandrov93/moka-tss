@@ -22,27 +22,27 @@ from typing import Any, Callable, Dict, Optional
 
 from PIL import Image
 
-import library.mascota.render as render_module
+import library.moka_tss.render as render_module
 from library.lcd.lcd_comm_rev_a import Command
-from library.mascota.paths import resource_path, user_data_dir
-from library.mascota.render import (
+from library.moka_tss.paths import resource_path, user_data_dir
+from library.moka_tss.render import (
     DEFAULT_SIZE,
     HIDDEN_PROVIDERS,
     MascotSprites,
     _visible_providers,
     _worst_provider_usage,
 )
-from library.mascota.rules import RuleEngine
-from library.mascota.screen import DEFAULT_BRIGHTNESS, Screen, command_frame
-from library.mascota.sensors_local import read_system_sensors
-from library.sensors.mascota.agenthub import AgentHubClient
-from library.sensors.mascota.codexbar import CodexBarClient
+from library.moka_tss.rules import RuleEngine
+from library.moka_tss.screen import DEFAULT_BRIGHTNESS, Screen, command_frame
+from library.moka_tss.sensors_local import read_system_sensors
+from library.sensors.moka_tss.agenthub import AgentHubClient
+from library.sensors.moka_tss.codexbar import CodexBarClient
 
-logger = logging.getLogger("mascota")
+logger = logging.getLogger("moka_tss")
 
 
 class SingleInstanceError(Exception):
-    """Raised when another instance of Mascota is already running."""
+    """Raised when another instance of MOKA TSS is already running."""
 
 
 class InstanceLock:
@@ -54,7 +54,7 @@ class InstanceLock:
     """
 
     def __init__(self, lock_path: Optional[Path] = None):
-        self.lock_path = Path(lock_path) if lock_path is not None else (user_data_dir() / "mascota.lock")
+        self.lock_path = Path(lock_path) if lock_path is not None else (user_data_dir() / "moka_tss.lock")
         self._file = None
 
     def acquire(self) -> None:
@@ -72,14 +72,14 @@ class InstanceLock:
                 msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
             except (OSError, IOError) as exc:
                 handle.close()
-                raise SingleInstanceError("Ya hay otra instancia de Mascota en ejecución.") from exc
+                raise SingleInstanceError("Ya hay otra instancia de MOKA TSS en ejecución.") from exc
         else:
             import fcntl
             try:
                 fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
             except (OSError, IOError) as exc:
                 handle.close()
-                raise SingleInstanceError("Ya hay otra instancia de Mascota en ejecución.") from exc
+                raise SingleInstanceError("Ya hay otra instancia de MOKA TSS en ejecución.") from exc
         self._file = handle
 
     def release(self) -> None:
@@ -131,8 +131,8 @@ def default_renderer(
     )
 
 
-class MascotaApp:
-    """Main application coordinator for the Turing Smart Screen dashboard."""
+class MokaApp:
+    """Main application coordinator for the MOKA Turing Smart Screen dashboard."""
 
     def __init__(
         self,
@@ -197,15 +197,15 @@ class MascotaApp:
         self._last_codexbar_time = -1e9
 
     def _load_default_rule_engine(self) -> RuleEngine:
-        rules_path = resource_path("res", "mascota", "rules.yaml")
+        rules_path = resource_path("res", "moka_tss", "rules.yaml")
         if rules_path.is_file():
             return RuleEngine.from_yaml_file(rules_path)
         return RuleEngine.from_dict({"moods": ["calma"], "default_mood": "calma", "rules": []})
 
     def _load_default_sprites(self) -> Optional[MascotSprites]:
-        sprites_dir = resource_path("res", "mascota", "sprites")
+        sprites_dir = resource_path("res", "moka_tss", "sprites")
         try:
-            from library.mascota.mascot import MascotSprites as RealMascotSprites
+            from library.moka_tss.mascot import MascotSprites as RealMascotSprites
             return RealMascotSprites.load(sprites_dir)
         except Exception as exc:
             logger.warning("Failed to load mascot sprites from %s: %s", sprites_dir, exc)
@@ -341,7 +341,7 @@ class MascotaApp:
         """
         if self.web_server is None:
             try:
-                from library.mascota.webconfig import WebConfigServer
+                from library.moka_tss.webconfig import WebConfigServer
                 self.web_server = WebConfigServer(status_provider=self._get_status)
             except Exception as exc:
                 logger.error("Failed to initialize WebConfigServer: %s", exc)
@@ -395,7 +395,7 @@ class MascotaApp:
                 pystray.Menu.SEPARATOR,
                 pystray.MenuItem("Salir", self.stop),
             )
-            self.tray_icon = pystray.Icon("mascota", icon_img, "Mascota", menu=menu)
+            self.tray_icon = pystray.Icon("moka_tss", icon_img, "MOKA TSS", menu=menu)
             if sys.platform != "darwin":
                 self.tray_icon.run_detached()
         except Exception as exc:
@@ -415,7 +415,7 @@ class MascotaApp:
         self._stop_event.clear()
         self._init_hardware()
         self._setup_tray()
-        self._loop_thread = threading.Thread(target=self._run_loop, name="mascota-loop", daemon=True)
+        self._loop_thread = threading.Thread(target=self._run_loop, name="moka-loop", daemon=True)
         self._loop_thread.start()
 
     def run(self) -> None:
@@ -493,3 +493,8 @@ class MascotaApp:
         self._close_serial_port()
         self._join_loop_thread()
         self._release_lock()
+
+
+# Backwards-compatibility alias
+MascotaApp = MokaApp
+

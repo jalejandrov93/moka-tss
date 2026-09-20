@@ -51,13 +51,13 @@ from typing import Callable, Optional, Sequence, Tuple
 
 from PIL import Image, ImageDraw, ImageFont
 
-from library.mascota.theme import Theme, load_theme
+from library.moka_tss.theme import Theme, load_theme
 
 # ----------------------------------------------------------------- interfaces
 
 
 class MascotSprites:
-    """Frozen interface implemented by a parallel task (library.mascota.mascot).
+    """Frozen interface implemented by a parallel task (library.moka_tss.mascot).
 
     Not implemented here -- code against this shape, use a stub in tests.
     """

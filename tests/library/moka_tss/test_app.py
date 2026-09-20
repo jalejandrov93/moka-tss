@@ -12,12 +12,13 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from library.mascota.app import (
+from library.moka_tss.app import (
     InstanceLock,
     MascotaApp,
+    MokaApp,
     SingleInstanceError,
 )
-from library.sensors.mascota.agenthub import FetchResult
+from library.sensors.moka_tss.agenthub import FetchResult
 
 
 class FakeSerial:
@@ -43,7 +44,7 @@ class TestInstanceLock(unittest.TestCase):
 
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
-        self.lock_path = Path(self.temp_dir.name) / "mascota.lock"
+        self.lock_path = Path(self.temp_dir.name) / "moka_tss.lock"
 
     def tearDown(self):
         self.temp_dir.cleanup()
@@ -250,13 +251,13 @@ class TestMascotaApp(unittest.TestCase):
         # Threads joined
         threads_after = set(threading.enumerate())
         new_threads = threads_after - threads_before
-        # Ensure no thread from Mascota is left running
-        mascota_threads = [t for t in new_threads if "mascota" in t.name.lower()]
-        self.assertEqual(mascota_threads, [])
+        # Ensure no thread from MOKA is left running
+        moka_threads = [t for t in new_threads if "moka" in t.name.lower()]
+        self.assertEqual(moka_threads, [])
 
     def test_simulate_mode_saves_image(self):
         sim_png = Path(self.temp_dir.name) / "screencap.png"
-        app = MascotaApp(
+        app = MokaApp(
             serial_port=None,
             tray_enabled=False,
             simulate=True,
@@ -269,7 +270,7 @@ class TestMascotaApp(unittest.TestCase):
         self.assertGreater(sim_png.stat().st_size, 0)
 
     def test_parse_args_defaults(self):
-        from mascota import parse_args
+        from moka import parse_args
         args = parse_args([])
         self.assertEqual(args.tick, 2.0)
         self.assertEqual(args.brightness, 85)
@@ -278,7 +279,7 @@ class TestMascotaApp(unittest.TestCase):
         self.assertFalse(args.simulate)
 
     def test_parse_args_custom(self):
-        from mascota import parse_args
+        from moka import parse_args
         args = parse_args(["--tick", "1.5", "--brightness", "70", "--port", "/dev/ttyUSB0", "--no-tray", "--simulate"])
         self.assertEqual(args.tick, 1.5)
         self.assertEqual(args.brightness, 70)
@@ -296,8 +297,8 @@ class RendererThemeIntegrationTests(unittest.TestCase):
     its own while the pair was broken, because nothing exercised the seam."""
 
     def test_default_renderer_works_with_a_real_theme(self):
-        from library.mascota import app as app_module
-        from library.mascota.theme import load_theme
+        from library.moka_tss import app as app_module
+        from library.moka_tss.theme import load_theme
 
         system = {"cpu": 40.0, "ram": 50.0, "gpu": None}
         snapshot = {"providers": [{"id": "claude", "name": "Claude",
@@ -319,7 +320,7 @@ class ConfigServerAtStartupTests(unittest.TestCase):
     clicked it, so its URL was unbookmarkable and died on every restart."""
 
     def test_run_starts_the_config_server(self):
-        from library.mascota import app as app_module
+        from library.moka_tss import app as app_module
 
         started = []
 
@@ -334,14 +335,14 @@ class ConfigServerAtStartupTests(unittest.TestCase):
             def stop(self):
                 self._httpd = None
 
-        app = app_module.MascotaApp(simulate=True, tray_enabled=False,
-                                    web_server=FakeServer())
+        app = app_module.MokaApp(simulate=True, tray_enabled=False,
+                                 web_server=FakeServer())
         port = app.start_config_server()
         self.assertEqual(port, 9999)
         self.assertEqual(started, [True])
 
     def test_start_config_server_is_idempotent(self):
-        from library.mascota import app as app_module
+        from library.moka_tss import app as app_module
 
         calls = []
 
@@ -357,8 +358,8 @@ class ConfigServerAtStartupTests(unittest.TestCase):
             def stop(self):
                 pass
 
-        app = app_module.MascotaApp(simulate=True, tray_enabled=False,
-                                    web_server=FakeServer())
+        app = app_module.MokaApp(simulate=True, tray_enabled=False,
+                                 web_server=FakeServer())
         app.start_config_server()
         app.start_config_server()
         self.assertEqual(calls, [], "an already-serving panel must not be restarted")

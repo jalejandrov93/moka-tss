@@ -314,9 +314,13 @@ def load_theme(name_or_path: Union[str, Path]) -> Theme:
     """Load and validate a theme by name or YAML file path."""
     path = Path(name_or_path)
     if not path.is_file():
-        # Look up in standard themes directory: res/mascota/themes/<name>/theme.yaml
+        # Look up in standard themes directory: res/moka_tss/themes/<name>/theme.yaml
         base_dir = Path(__file__).resolve().parent.parent.parent
-        candidate = base_dir / "res" / "mascota" / "themes" / str(name_or_path) / "theme.yaml"
+        candidate = base_dir / "res" / "moka_tss" / "themes" / str(name_or_path) / "theme.yaml"
+        if not candidate.is_file():
+            fallback_candidate = base_dir / "res" / "mascota" / "themes" / str(name_or_path) / "theme.yaml"
+            if fallback_candidate.is_file():
+                candidate = fallback_candidate
         if candidate.is_file():
             path = candidate
         else:

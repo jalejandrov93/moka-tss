@@ -16,8 +16,8 @@ import unittest
 from PIL import Image
 
 
-from library.mascota.render import MascotSprites, render
-from library.mascota.theme import (
+from library.moka_tss.render import MascotSprites, render
+from library.moka_tss.theme import (
     Theme,
     ThemeValidationError,
     load_theme,

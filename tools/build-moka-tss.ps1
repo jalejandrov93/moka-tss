@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# Build script for the Mascota Windows executable.
-# Run from the repository root on Windows:  powershell -ExecutionPolicy Bypass -File tools\build-mascota.ps1
-# Expects a virtualenv in .\venv (created with C:\Python313\python.exe -m venv venv).
+# Build script for the MOKA TSS Windows executable.
+# Run from the repository root on Windows:  powershell -ExecutionPolicy Bypass -File tools\build-moka-tss.ps1
+# Expects a virtualenv in .\venv or .\.venv (created with C:\Python313\python.exe -m venv .venv).
 # This script cannot run on Linux or macOS: it invokes the Windows venv
 # interpreter and PyInstaller, which must execute on the target platform.
 
@@ -15,9 +15,9 @@ function Fail($Message) {
     exit 1
 }
 
-# Must run from the repository root, where mascota.spec lives.
-if (-not (Test-Path ".\mascota.spec")) {
-    Fail "mascota.spec not found. Run this script from the repository root."
+# Must run from the repository root, where moka-tss.spec lives.
+if (-not (Test-Path ".\moka-tss.spec")) {
+    Fail "moka-tss.spec not found. Run this script from the repository root."
 }
 
 $VenvPython = if (Test-Path ".\.venv\Scripts\python.exe") {
@@ -35,10 +35,10 @@ if ($LASTEXITCODE -ne 0) { Fail "pip upgrade failed (exit code $LASTEXITCODE)." 
 if ($LASTEXITCODE -ne 0) { Fail "'pip install -r requirements.txt' failed (exit code $LASTEXITCODE)." }
 
 Write-Host "Running PyInstaller..."
-& $VenvPython -m PyInstaller --noconfirm mascota.spec
+& $VenvPython -m PyInstaller --noconfirm moka-tss.spec
 if ($LASTEXITCODE -ne 0) { Fail "PyInstaller failed (exit code $LASTEXITCODE). See the output above." }
 
-$ExePath = ".\dist\mascota\mascota.exe"
+$ExePath = ".\dist\moka\moka.exe"
 if (-not (Test-Path $ExePath)) {
     Fail "Build finished but $ExePath is missing. Check the PyInstaller output above."
 }

@@ -13,7 +13,7 @@ from unittest import mock
 
 import requests
 
-from library.sensors.mascota import codexbar
+from library.sensors.moka_tss import codexbar
 
 
 def _sample_snapshot():
@@ -69,7 +69,7 @@ class _FakeResponse:
 def _install_fake_get(test_case, side_effect):
     """Patch requests.get inside the codexbar module. side_effect: callable or
     list of return values / exceptions consumed in order by mock's side_effect."""
-    patcher = mock.patch("library.sensors.mascota.codexbar.requests.get", side_effect=side_effect)
+    patcher = mock.patch("library.sensors.moka_tss.codexbar.requests.get", side_effect=side_effect)
     fake_get = patcher.start()
     test_case.addCleanup(patcher.stop)
     return fake_get
@@ -77,7 +77,7 @@ def _install_fake_get(test_case, side_effect):
 
 def _no_token(test_case):
     patcher = mock.patch(
-        "library.sensors.mascota.codexbar._resolve_token", return_value="fake-test-token"
+        "library.sensors.moka_tss.codexbar._resolve_token", return_value="fake-test-token"
     )
     patcher.start()
     test_case.addCleanup(patcher.stop)
@@ -175,7 +175,7 @@ class CodexBarClientHappyPathTests(unittest.TestCase):
             self, [_FakeResponse(200, payload=_sample_snapshot()), requests.exceptions.Timeout()]
         )
         client = codexbar.CodexBarClient()
-        with mock.patch("library.sensors.mascota.codexbar.time.monotonic", side_effect=[0, 20]):
+        with mock.patch("library.sensors.moka_tss.codexbar.time.monotonic", side_effect=[0, 20]):
             client.get_snapshot()
             snapshot, is_stale, is_available = client.get_snapshot()
 
@@ -188,7 +188,7 @@ class CodexBarClientHappyPathTests(unittest.TestCase):
             self, [_FakeResponse(200, payload=_sample_snapshot()), requests.exceptions.Timeout()]
         )
         client = codexbar.CodexBarClient()
-        with mock.patch("library.sensors.mascota.codexbar.time.monotonic", side_effect=[0, 901]):
+        with mock.patch("library.sensors.moka_tss.codexbar.time.monotonic", side_effect=[0, 901]):
             client.get_snapshot()
             snapshot, is_stale, is_available = client.get_snapshot()
 
@@ -282,7 +282,7 @@ class TokenResolutionTests(unittest.TestCase):
         non_existent_home = self.temp_path / "does-not-exist"
         with mock.patch.dict("os.environ", {}, clear=True), \
              mock.patch.object(codexbar, "TOKEN_FILE_PATH", non_existent_home), \
-             mock.patch("library.mascota.wsl.find_wsl_candidate_paths") as mock_wsl:
+             mock.patch("library.moka_tss.wsl.find_wsl_candidate_paths") as mock_wsl:
             token = codexbar._resolve_token()
 
         self.assertIsNone(token)
@@ -296,7 +296,7 @@ class TokenResolutionTests(unittest.TestCase):
 
         with mock.patch.dict("os.environ", {}, clear=True), \
              mock.patch.object(codexbar, "TOKEN_FILE_PATH", non_existent_home), \
-             mock.patch("library.mascota.wsl.find_wsl_candidate_paths", return_value=[wsl_token_file]):
+             mock.patch("library.moka_tss.wsl.find_wsl_candidate_paths", return_value=[wsl_token_file]):
             token = codexbar._resolve_token()
 
         self.assertEqual(token, "wsl-token-val")
@@ -307,10 +307,10 @@ class TokenResolutionTests(unittest.TestCase):
         home_file = self.temp_path / "missing-home"
         wsl_candidate = Path(r"\\wsl.localhost\Ubuntu\home\alejandro\.config\codexbar\dashboard-token")
 
-        env = {"MASCOTA_CODEXBAR_TOKEN_FILE": str(override_file)}
+        env = {"MOKA_CODEXBAR_TOKEN_FILE": str(override_file)}
         with mock.patch.dict("os.environ", env, clear=True), \
              mock.patch.object(codexbar, "TOKEN_FILE_PATH", home_file), \
-             mock.patch("library.mascota.wsl.find_wsl_candidate_paths", return_value=[wsl_candidate]), \
+             mock.patch("library.moka_tss.wsl.find_wsl_candidate_paths", return_value=[wsl_candidate]), \
              mock.patch.object(codexbar.logger, "error") as mock_error:
             token = codexbar._resolve_token()
 

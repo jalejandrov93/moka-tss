@@ -1,7 +1,7 @@
-# Generar `mascota.exe` en Windows
+# Generar `moka.exe` en Windows
 
-Esta guía explica cómo construir el ejecutable de Windows de Mascota: un solo
-`mascota.exe` que se abre con doble clic, sin necesidad de ejecutar comandos
+Esta guía explica cómo construir el ejecutable de Windows de MOKA TSS: un solo
+`moka.exe` que se abre con doble clic, sin necesidad de ejecutar comandos
 de Python para usarlo.
 
 ## Requisitos previos
@@ -9,8 +9,8 @@ de Python para usarlo.
 - Windows 10 u 11 de 64 bits.
 - Python 3.13 instalado en `C:\Python313` (es la versión donde ya se verificó
   que todo `requirements.txt` instala limpio).
-- Un entorno virtual en `.\venv` dentro del repositorio:
-  `C:\Python313\python.exe -m venv venv`.
+- Un entorno virtual en `.\venv` o `.\.venv` dentro del repositorio:
+  `C:\Python313\python.exe -m venv .venv`.
 - Conexión a internet para descargar las dependencias la primera vez.
 
 ## Cómo compilar
@@ -19,10 +19,10 @@ de Python para usarlo.
 2. Ejecutar:
 
    ```powershell
-   powershell -ExecutionPolicy Bypass -File tools\build-mascota.ps1
+   powershell -ExecutionPolicy Bypass -File tools\build-moka-tss.ps1
    ```
 
-   El script instala las dependencias, corre PyInstaller sobre `mascota.spec`
+   El script instala las dependencias, corre PyInstaller sobre `moka-tss.spec`
    y comprueba que el ejecutable existe. Si algo falla, se detiene con un
    mensaje que indica qué paso falló.
 
@@ -31,16 +31,16 @@ de Python para usarlo.
 Al terminar, el ejecutable está en:
 
 ```text
-dist\mascota\mascota.exe
+dist\moka\moka.exe
 ```
 
 Ojo: no es un único archivo suelto, sino un ejecutable más su carpeta
-(`onedir`). Para llevarlo a otra máquina, hay que copiar la carpeta `mascota`
+(`onedir`). Para llevarlo a otra máquina, hay que copiar la carpeta `moka`
 completa, no solo el `.exe`.
 
 ## Cómo ejecutarlo
 
-Doble clic sobre `mascota.exe`. La app vive en la bandeja del sistema (junto
+Doble clic sobre `moka.exe`. La app vive en la bandeja del sistema (junto
 al reloj): desde su ícono se abre el panel de configuración y se sale de la
 app. No hace falta tener Python instalado en la máquina donde se ejecuta.
 
@@ -58,13 +58,13 @@ app. No hace falta tener Python instalado en la máquina donde se ejecuta.
   La temperatura de CPU solo la entrega LibreHardwareMonitor, que exige
   **ejecutar como administrador**. En cambio `nvidia-smi` (GPU) y `psutil`
   (CPU/RAM) funcionan sin elevación. Si solo faltan temperaturas, hay que
-  cerrar la app y relanzar `mascota.exe` con "Ejecutar como administrador".
+  cerrar la app y relanzar `moka.exe` con "Ejecutar como administrador".
   Sin admin la app sigue funcionando, con degradación explícita.
 
 - **El ícono de la bandeja no aparece y no hay ningún error.**
   Si al compilar no se empaquetó el backend de `pystray` para Windows
   (`pystray._win32`), la bandeja desaparece en silencio: `main.py` ignora el
-  error de importación a propósito. `mascota.spec` ya lo incluye en
+  error de importación a propósito. `moka-tss.spec` ya lo incluye en
   `hiddenimports`, así que si pasa esto lo más probable es que el `.exe` se
   haya compilado con un spec modificado o desactualizado: reconstruir desde
   este repositorio sin tocar `hiddenimports`.

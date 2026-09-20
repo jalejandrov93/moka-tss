@@ -9,7 +9,7 @@ import subprocess
 import unittest
 from unittest.mock import MagicMock, patch
 
-from library.mascota.sensors_local import (
+from library.moka_tss.sensors_local import (
     get_cpu_percent,
     get_cpu_temp,
     get_gpu_info,
@@ -90,13 +90,13 @@ class TestSensorsLocal(unittest.TestCase):
         expected_flag = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         self.assertEqual(kwargs.get("creationflags"), expected_flag)
 
-    @patch("library.mascota.sensors_local.get_cpu_percent", return_value=12.0)
-    @patch("library.mascota.sensors_local.get_ram_percent", return_value=34.0)
+    @patch("library.moka_tss.sensors_local.get_cpu_percent", return_value=12.0)
+    @patch("library.moka_tss.sensors_local.get_ram_percent", return_value=34.0)
     @patch(
-        "library.mascota.sensors_local.get_gpu_info",
+        "library.moka_tss.sensors_local.get_gpu_info",
         return_value={"util": 10.0, "temp": 50.0, "vram": 20.0, "vram_used": 1000.0, "vram_total": 5000.0},
     )
-    @patch("library.mascota.sensors_local.get_cpu_temp", return_value=48.0)
+    @patch("library.moka_tss.sensors_local.get_cpu_temp", return_value=48.0)
     def test_read_system_sensors(self, mock_temp, mock_gpu, mock_ram, mock_cpu):
         sys_data = read_system_sensors()
         self.assertEqual(sys_data["cpu"], 12.0)

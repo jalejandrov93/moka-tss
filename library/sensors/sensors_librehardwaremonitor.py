@@ -36,7 +36,7 @@ from win32api import *
 
 import library.sensors.sensors as sensors
 from library.log import logger
-from library.mascota.paths import resource_path
+from library.moka_tss.paths import resource_path
 
 # Import LibreHardwareMonitor dll to Python
 lhm_dll = str(resource_path("external", "LibreHardwareMonitor", "LibreHardwareMonitorLib.dll"))

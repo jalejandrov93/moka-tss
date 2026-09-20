@@ -1,19 +1,19 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # -*- mode: python ; coding: utf-8 -*-
 
-# PyInstaller spec for Mascota, the Turing Smart Screen 3.5" dashboard.
-# Entry point: mascota.py at the repository root.
+# PyInstaller spec for MOKA TSS, the Turing Smart Screen 3.5" dashboard.
+# Entry point: moka.py at the repository root.
 # Modelled on turing-system-monitor.spec; produces a single executable,
-# mascota.exe, instead of the three executables joined by COLLECT there.
+# moka.exe, instead of the three executables joined by COLLECT there.
 
-mascota_a = Analysis(
-    ['mascota.py'],
+moka_a = Analysis(
+    ['moka.py'],
     pathex=[],
     binaries=[],
     # ('res', 'res') already copies the whole res/ tree, which includes our
-    # own resources: res/mascota/sprites/ (mascot PNG frames + CREDITS.md),
-    # res/mascota/webui/ (index.html, style.css, app.js) and
-    # res/mascota/rules.yaml. They are NOT listed separately on purpose:
+    # own resources: res/moka_tss/sprites/ (mascot PNG frames + CREDITS.md),
+    # res/moka_tss/webui/ (index.html, style.css, app.js) and
+    # res/moka_tss/rules.yaml. They are NOT listed separately on purpose:
     # one entry keeps the spec in sync automatically when sprites or webui
     # files are added, and a second overlapping entry would copy them twice.
     datas=[('res', 'res'), ('config.yaml', '.'), ('external', 'external')],
@@ -51,14 +51,14 @@ mascota_a = Analysis(
     noarchive=False,
     optimize=0,
 )
-mascota_pyz = PYZ(mascota_a.pure)
+moka_pyz = PYZ(moka_a.pure)
 
-mascota_exe = EXE(
-    mascota_pyz,
-    mascota_a.scripts,
+moka_exe = EXE(
+    moka_pyz,
+    moka_a.scripts,
     [],
     exclude_binaries=True,
-    name='mascota',
+    name='moka',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -72,7 +72,7 @@ mascota_exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=['res/icons/monitor-icon-17865/icon.ico'],
-    # Must stay '.': library/mascota/paths.py resolves bundled data from
+    # Must stay '.': library/moka_tss/paths.py resolves bundled data from
     # sys._MEIPASS when present and falls back to the directory containing
     # sys.executable, which is only correct when everything is collected
     # next to the exe instead of under an _internal/ subdirectory.
@@ -80,20 +80,13 @@ mascota_exe = EXE(
     version='tools/windows-installer/pyinstaller-version-info.txt',
 )
 
-# BUILD MODE: onedir (one mascota.exe plus its folder), NOT onefile.
-# Why: library/mascota/paths.py handles both (sys._MEIPASS branch for
-# onefile, sys.executable directory otherwise), so either would resolve.
-# Onedir wins because a dashboard gan autostarted with Windows should start
-# fast: onefile re-extracts every bundled file to a temp dir on each
-# launch, while onedir just runs. It also matches the existing
-# turing-system-monitor.spec pattern, so the Inno Setup tooling and the
-# documented packaging pitfalls keep applying unchanged.
+# BUILD MODE: onedir (one moka.exe plus its folder), NOT onefile.
 coll = COLLECT(
-    mascota_exe,
-    mascota_a.binaries,
-    mascota_a.datas,
+    moka_exe,
+    moka_a.binaries,
+    moka_a.datas,
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='mascota',
+    name='moka',
 )

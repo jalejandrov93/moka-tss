@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# Tests for library/mascota/paths.py -- path resolution that must behave
+# Tests for library/moka_tss/paths.py -- path resolution that must behave
 # identically running from source, frozen one-dir, and frozen one-file
 # (PyInstaller), and must never write user data inside sys._MEIPASS.
 
@@ -11,7 +11,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from library.mascota.paths import base_dir, is_frozen, resource_path, user_data_dir
+from library.moka_tss.paths import base_dir, is_frozen, resource_path, user_data_dir
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
@@ -41,7 +41,7 @@ class BaseDirTests(unittest.TestCase):
     def test_frozen_without_meipass_falls_back_to_executable_dir(self):
         with tempfile.TemporaryDirectory() as tmp:
             install_dir = Path(tmp).resolve()
-            exe_path = install_dir / "mascota.exe"
+            exe_path = install_dir / "moka.exe"
             with patch.object(sys, "frozen", True, create=True):
                 if hasattr(sys, "_MEIPASS"):
                     delattr(sys, "_MEIPASS")
@@ -53,8 +53,8 @@ class ResourcePathTests(unittest.TestCase):
     def test_joins_against_base_dir_from_source(self):
         with patch.object(sys, "frozen", False, create=True):
             self.assertEqual(
-                resource_path("res", "mascota", "rules.yaml"),
-                REPO_ROOT / "res" / "mascota" / "rules.yaml",
+                resource_path("res", "moka_tss", "rules.yaml"),
+                REPO_ROOT / "res" / "moka_tss" / "rules.yaml",
             )
 
     def test_joins_against_base_dir_frozen_meipass(self):
@@ -70,7 +70,7 @@ class ResourcePathTests(unittest.TestCase):
     def test_joins_against_base_dir_frozen_one_dir(self):
         with tempfile.TemporaryDirectory() as tmp:
             install_dir = Path(tmp).resolve()
-            exe_path = install_dir / "mascota.exe"
+            exe_path = install_dir / "moka.exe"
             with patch.object(sys, "frozen", True, create=True):
                 if hasattr(sys, "_MEIPASS"):
                     delattr(sys, "_MEIPASS")
@@ -101,7 +101,7 @@ class UserDataDirTests(unittest.TestCase):
             with patch.dict(os.environ, {"APPDATA": r"C:\Users\alejandro\AppData\Roaming"}):
                 self.assertEqual(
                     user_data_dir(),
-                    Path(r"C:\Users\alejandro\AppData\Roaming") / "Mascota",
+                    Path(r"C:\Users\alejandro\AppData\Roaming") / "MokaTSS",
                 )
 
     def test_windows_without_appdata_falls_back_to_home(self):
@@ -109,7 +109,7 @@ class UserDataDirTests(unittest.TestCase):
             with patch.dict(os.environ, {}, clear=True):
                 self.assertEqual(
                     user_data_dir(),
-                    Path.home() / "AppData" / "Roaming" / "Mascota",
+                    Path.home() / "AppData" / "Roaming" / "MokaTSS",
                 )
 
     def test_linux_uses_xdg_data_home(self):
@@ -117,7 +117,7 @@ class UserDataDirTests(unittest.TestCase):
             with patch.dict(os.environ, {"XDG_DATA_HOME": "/home/alejandro/.local/share"}):
                 self.assertEqual(
                     user_data_dir(),
-                    Path("/home/alejandro/.local/share") / "mascota",
+                    Path("/home/alejandro/.local/share") / "moka-tss",
                 )
 
     def test_linux_without_xdg_falls_back_to_default(self):
@@ -125,7 +125,7 @@ class UserDataDirTests(unittest.TestCase):
             with patch.dict(os.environ, {}, clear=True):
                 self.assertEqual(
                     user_data_dir(),
-                    Path.home() / ".local" / "share" / "mascota",
+                    Path.home() / ".local" / "share" / "moka-tss",
                 )
 
     def test_macos_is_not_treated_as_windows(self):
@@ -133,7 +133,7 @@ class UserDataDirTests(unittest.TestCase):
             with patch.dict(os.environ, {}, clear=True):
                 out = user_data_dir()
                 self.assertNotIn("AppData", str(out))
-                self.assertEqual(out, Path.home() / ".local" / "share" / "mascota")
+                self.assertEqual(out, Path.home() / ".local" / "share" / "moka-tss")
 
 
 class LhmDllPathIndependentOfCwdTests(unittest.TestCase):

@@ -66,7 +66,7 @@ logger.setLevel(logging.DEBUG)
 
 # Hardcode specific configuration for theme editor
 from library import config
-from library.mascota.paths import resource_path
+from library.moka_tss.paths import resource_path
 
 config.CONFIG_DATA["config"]["HW_SENSORS"] = "STATIC"  # For theme editor always use stub data
 config.CONFIG_DATA["config"]["THEME"] = sys.argv[1]  # Theme is given as argument

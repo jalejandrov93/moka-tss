@@ -11,7 +11,7 @@ import time
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from library.sensors.mascota.agenthub import (
+from library.sensors.moka_tss.agenthub import (
     AgentHubClient,
     AgentHubEventStream,
     AgentHubRunningJobsData,

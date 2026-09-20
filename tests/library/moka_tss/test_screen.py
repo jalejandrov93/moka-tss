@@ -16,7 +16,7 @@ import unittest
 
 from PIL import Image
 
-from library.mascota.screen import (
+from library.moka_tss.screen import (
     DEFAULT_BRIGHTNESS,
     Screen,
     TILE_HEIGHT,

@@ -40,13 +40,14 @@ import requests
 from library.sensors.sensors_custom import CustomDataSource
 
 DEFAULT_BASE_URL = "http://127.0.0.1:7777"
-BASE_URL_ENV_VAR = "MASCOTA_AGENTHUB_URL"
+BASE_URL_ENV_VAR = "MOKA_AGENTHUB_URL"
+LEGACY_BASE_URL_ENV_VAR = "MASCOTA_AGENTHUB_URL"
 
 
 def _resolve_base_url(base_url: Optional[str]) -> str:
     if base_url:
         return base_url
-    return os.environ.get(BASE_URL_ENV_VAR, DEFAULT_BASE_URL)
+    return os.environ.get(BASE_URL_ENV_VAR) or os.environ.get(LEGACY_BASE_URL_ENV_VAR) or DEFAULT_BASE_URL
 
 
 # Result of a single poll: `value` is the parsed JSON payload (or None when

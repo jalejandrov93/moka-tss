@@ -11,10 +11,10 @@ from pathlib import Path
 
 from PIL import Image
 
-from library.mascota.mascot import MascotSprites
+from library.moka_tss.mascot import MascotSprites
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-ASSETS_DIR = REPO_ROOT / "res" / "mascota" / "sprites"
+ASSETS_DIR = REPO_ROOT / "res" / "moka_tss" / "sprites"
 
 
 class LoadTests(unittest.TestCase):

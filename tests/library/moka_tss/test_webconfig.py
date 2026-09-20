@@ -32,8 +32,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from library.mascota import webconfig
-from library.mascota.rules import RulesConfigError
+from library.moka_tss import webconfig
+from library.moka_tss.rules import RulesConfigError
 
 VALID_RULES = {
     "moods": ["calma", "alarmada"],

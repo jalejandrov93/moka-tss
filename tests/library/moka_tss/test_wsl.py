@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from library.mascota import wsl
+from library.moka_tss import wsl
 
 
 class WslOutputDecodingTests(unittest.TestCase):

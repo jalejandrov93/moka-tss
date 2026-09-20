@@ -70,12 +70,12 @@ from urllib.parse import urlparse
 
 import yaml
 
-from library.mascota.rules import RuleEngine, RulesConfigError
+from library.moka_tss.rules import RuleEngine, RulesConfigError
 
 DEFAULT_HOST = "127.0.0.1"
 
 # agent-hub already owns 7777 and codexbar owns 8787 on this machine (see
-# library/sensors/mascota/agenthub.py and codexbar.py); 8765 is unrelated to
+# library/sensors/moka_tss/agenthub.py and codexbar.py); 8765 is unrelated to
 # either so opening the panel does not race a port one of them might grab.
 DEFAULT_PORT = 8765
 
@@ -107,16 +107,16 @@ class ConfigValidationError(Exception):
 
 
 def default_config_path() -> Path:
-    # library/mascota/webconfig.py -> library/mascota -> library -> repo root
-    return Path(__file__).resolve().parents[2] / "res" / "mascota" / "webconfig.json"
+    # library/moka_tss/webconfig.py -> library/moka_tss -> library -> repo root
+    return Path(__file__).resolve().parents[2] / "res" / "moka_tss" / "webconfig.json"
 
 
 def default_rules_path() -> Path:
-    return Path(__file__).resolve().parents[2] / "res" / "mascota" / "rules.yaml"
+    return Path(__file__).resolve().parents[2] / "res" / "moka_tss" / "rules.yaml"
 
 
 def default_webui_dir() -> Path:
-    return Path(__file__).resolve().parents[2] / "res" / "mascota" / "webui"
+    return Path(__file__).resolve().parents[2] / "res" / "moka_tss" / "webui"
 
 
 def _atomic_write_text(path: Path, text: str) -> None:

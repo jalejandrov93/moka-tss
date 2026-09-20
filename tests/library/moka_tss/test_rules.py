@@ -11,10 +11,10 @@ import math
 import unittest
 from pathlib import Path
 
-from library.mascota.rules import RuleEngine, RulesConfigError
+from library.moka_tss.rules import RuleEngine, RulesConfigError
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_RULES_PATH = REPO_ROOT / "res" / "mascota" / "rules.yaml"
+DEFAULT_RULES_PATH = REPO_ROOT / "res" / "moka_tss" / "rules.yaml"
 
 DEFAULT_MOODS = ["durmiendo", "calma", "atenta", "agobiada", "alarmada", "error"]
 

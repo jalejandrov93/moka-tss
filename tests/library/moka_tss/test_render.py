@@ -17,7 +17,7 @@ import unittest
 
 from PIL import Image
 
-from library.mascota.render import (
+from library.moka_tss.render import (
     AMBER_THRESHOLD,
     GREEN,
     RED,
@@ -213,7 +213,7 @@ class FontFallbackTests(unittest.TestCase):
         self.assertIsNotNone(font)
 
     def test_render_survives_when_every_font_candidate_is_missing(self):
-        import library.mascota.render as render_module
+        import library.moka_tss.render as render_module
         original = render_module.FONT_CANDIDATES
         render_module.FONT_CANDIDATES = ("/nonexistent/path/does-not-exist.ttf",)
         render_module._load_font.cache_clear()

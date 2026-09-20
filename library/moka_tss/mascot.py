@@ -83,8 +83,12 @@ _POSE_FILES = (
 
 
 def _default_assets_dir() -> Path:
-    # library/mascota/mascot.py -> library/mascota -> library -> repo root
-    return Path(__file__).resolve().parents[2] / "res" / "mascota" / "sprites"
+    # library/moka_tss/mascot.py -> library/moka_tss -> library -> repo root
+    base = Path(__file__).resolve().parents[2]
+    cand = base / "res" / "moka_tss" / "sprites"
+    if cand.is_dir():
+        return cand
+    return base / "res" / "mascota" / "sprites"
 
 
 def _load_pose(assets_dir: Path, filename: str) -> Image.Image:
@@ -92,7 +96,7 @@ def _load_pose(assets_dir: Path, filename: str) -> Image.Image:
     if not path.is_file():
         raise FileNotFoundError(
             f"Mascot sprite asset missing: '{path}'. Expected the committed "
-            f"frames under res/mascota/sprites/ (see CREDITS.md there)."
+            f"frames under res/moka_tss/sprites/ (see CREDITS.md there)."
         )
     with Image.open(path) as handle:
         return handle.convert("RGBA")
@@ -182,7 +186,7 @@ class MascotSprites:
         if not directory.is_dir():
             raise FileNotFoundError(
                 f"Mascot sprite assets directory not found: '{directory}'. "
-                f"Expected the frames committed under res/mascota/sprites/."
+                f"Expected the frames committed under res/moka_tss/sprites/."
             )
 
         poses = {name: _load_pose(directory, f"{name}.png") for name in _POSE_FILES}
