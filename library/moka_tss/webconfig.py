@@ -445,6 +445,12 @@ class _ConfigRequestHandler(BaseHTTPRequestHandler):
             self._send_error_json(HTTPStatus.INTERNAL_SERVER_ERROR, f"Could not save config: {exc}")
             return
         self._send_json(HTTPStatus.OK, saved)
+        callback = getattr(self.server, "on_config_saved", None)
+        if callback is not None:
+            try:
+                callback(saved)
+            except Exception:
+                pass
 
     def _handle_post_rules(self, payload) -> None:
         if not isinstance(payload, dict):
@@ -467,12 +473,23 @@ class _ConfigHTTPServer(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
 
-    def __init__(self, address, handler_cls, *, config_path, rules_path, webui_dir, status_provider):
+    def __init__(
+        self,
+        address,
+        handler_cls,
+        *,
+        config_path,
+        rules_path,
+        webui_dir,
+        status_provider,
+        on_config_saved=None,
+    ):
         super().__init__(address, handler_cls)
         self.config_path = config_path
         self.rules_path = rules_path
         self.webui_dir = webui_dir
         self.status_provider = status_provider
+        self.on_config_saved = on_config_saved
 
 
 class WebConfigServer:
@@ -495,12 +512,14 @@ class WebConfigServer:
         webui_dir: Optional[Path] = None,
         port: int = DEFAULT_PORT,
         status_provider: Optional[Callable[[], Dict[str, object]]] = None,
+        on_config_saved: Optional[Callable[[Dict[str, object]], None]] = None,
     ):
         self._config_path = Path(config_path) if config_path is not None else default_config_path()
         self._rules_path = Path(rules_path) if rules_path is not None else default_rules_path()
         self._webui_dir = Path(webui_dir) if webui_dir is not None else default_webui_dir()
         self._requested_port = port
         self._status_provider = status_provider or _default_status
+        self._on_config_saved = on_config_saved
         self._httpd: Optional[_ConfigHTTPServer] = None
         self._thread: Optional[threading.Thread] = None
 
@@ -520,6 +539,7 @@ class WebConfigServer:
             rules_path=self._rules_path,
             webui_dir=self._webui_dir,
             status_provider=self._status_provider,
+            on_config_saved=self._on_config_saved,
         )
         self._thread = threading.Thread(
             target=self._httpd.serve_forever,

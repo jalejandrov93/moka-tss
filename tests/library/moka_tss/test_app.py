@@ -364,3 +364,70 @@ class ConfigServerAtStartupTests(unittest.TestCase):
         app.start_config_server()
         app.start_config_server()
         self.assertEqual(calls, [], "an already-serving panel must not be restarted")
+
+
+class ApplySavedSettingsTests(unittest.TestCase):
+    """Tests for dynamic application of settings saved via the config panel."""
+
+    def test_apply_saved_settings_with_mock_screen(self):
+        mock_screen = MagicMock()
+        app = MokaApp(
+            serial_port=None,
+            screen=mock_screen,
+            tray_enabled=False,
+            simulate=True,
+        )
+        app._apply_saved_settings({"brightness": 70})
+        mock_screen.set_brightness.assert_called_once_with(70)
+        self.assertEqual(app.brightness, 70)
+
+    def test_apply_saved_settings_without_screen_does_not_raise(self):
+        app = MokaApp(
+            serial_port=None,
+            screen=None,
+            tray_enabled=False,
+            simulate=True,
+        )
+        app._apply_saved_settings({"brightness": 50})
+        self.assertEqual(app.brightness, 50)
+
+    def test_apply_saved_settings_screen_exception_is_handled(self):
+        mock_screen = MagicMock()
+        mock_screen.set_brightness.side_effect = RuntimeError("I2C error")
+        app = MokaApp(
+            serial_port=None,
+            screen=mock_screen,
+            tray_enabled=False,
+            simulate=True,
+        )
+        app._apply_saved_settings({"brightness": 30})
+        mock_screen.set_brightness.assert_called_once_with(30)
+        self.assertEqual(app.brightness, 30)
+
+    def test_apply_saved_settings_ignores_invalid_brightness(self):
+        mock_screen = MagicMock()
+        app = MokaApp(
+            serial_port=None,
+            screen=mock_screen,
+            tray_enabled=False,
+            simulate=True,
+        )
+        app._apply_saved_settings({"brightness": -5})
+        app._apply_saved_settings({"brightness": 105})
+        app._apply_saved_settings({"brightness": "invalid"})
+        app._apply_saved_settings({"brightness": True})
+        mock_screen.set_brightness.assert_not_called()
+
+    def test_start_config_server_wires_apply_saved_settings(self):
+        from unittest.mock import patch
+        app = MokaApp(simulate=True, tray_enabled=False)
+        with patch("library.moka_tss.webconfig.WebConfigServer") as mock_cls:
+            mock_inst = MagicMock()
+            mock_inst.port = 8765
+            mock_cls.return_value = mock_inst
+            port = app.start_config_server()
+            self.assertEqual(port, 8765)
+            mock_cls.assert_called_once_with(
+                status_provider=app._get_status,
+                on_config_saved=app._apply_saved_settings,
+            )

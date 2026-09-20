@@ -152,6 +152,25 @@ class ConfigEndpointTests(WebConfigServerTestCase):
         # nothing must have been written for an invalid payload
         self.assertFalse(self.config_path.is_file())
 
+    def test_post_config_invokes_on_config_saved_callback(self):
+        received = []
+        self.server._httpd.on_config_saved = lambda saved: received.append(saved)
+        status, _ = self._post_json("/api/config", {"brightness": 72})
+        self.assertEqual(status, 200)
+        self.assertEqual(len(received), 1)
+        self.assertIsInstance(received[0], dict)
+        self.assertEqual(received[0]["brightness"], 72)
+
+    def test_post_config_returns_200_even_if_callback_raises(self):
+        def faulty_callback(saved):
+            raise RuntimeError("Boom!")
+
+        self.server._httpd.on_config_saved = faulty_callback
+        status, body = self._post_json("/api/config", {"brightness": 45})
+        self.assertEqual(status, 200)
+        saved = json.loads(body)
+        self.assertEqual(saved["brightness"], 45)
+
 
 class SecurityTests(WebConfigServerTestCase):
     def test_post_with_wrong_origin_is_rejected(self):
@@ -463,6 +482,23 @@ class ServerLifecycleTests(unittest.TestCase):
             ) as server:
                 self.assertIsInstance(server.port, int)
                 self.assertGreater(server.port, 0)
+
+    def test_webconfig_server_wires_on_config_saved(self):
+        with TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            webui_dir = tmp_path / "webui"
+            webui_dir.mkdir()
+
+            def cb(d):
+                return None
+            with webconfig.WebConfigServer(
+                config_path=tmp_path / "webconfig.json",
+                rules_path=tmp_path / "rules.yaml",
+                webui_dir=webui_dir,
+                port=0,
+                on_config_saved=cb,
+            ) as server:
+                self.assertIs(server._httpd.on_config_saved, cb)
 
 
 class ServicesConfigTests(unittest.TestCase):

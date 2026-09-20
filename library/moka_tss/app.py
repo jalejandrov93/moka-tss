@@ -328,6 +328,19 @@ class MokaApp:
         self._render_and_output(mood)
         self.tick_count += 1
 
+    def _apply_saved_settings(self, settings: dict) -> None:
+        """Apply newly saved settings immediately to the running app and hardware."""
+        if not isinstance(settings, dict):
+            return
+        v = settings.get("brightness")
+        if isinstance(v, (int, float)) and not isinstance(v, bool) and 0 <= v <= 100:
+            self.brightness = int(v)
+            if self.screen is not None:
+                try:
+                    self.screen.set_brightness(int(v))
+                except Exception as exc:
+                    logger.warning("Failed to apply brightness %s to screen: %s", v, exc)
+
     def start_config_server(self) -> Optional[int]:
         """Start the loopback config panel if it is not already serving.
 
@@ -342,7 +355,10 @@ class MokaApp:
         if self.web_server is None:
             try:
                 from library.moka_tss.webconfig import WebConfigServer
-                self.web_server = WebConfigServer(status_provider=self._get_status)
+                self.web_server = WebConfigServer(
+                    status_provider=self._get_status,
+                    on_config_saved=self._apply_saved_settings,
+                )
             except Exception as exc:
                 logger.error("Failed to initialize WebConfigServer: %s", exc)
                 return None
