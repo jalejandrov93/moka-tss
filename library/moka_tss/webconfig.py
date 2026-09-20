@@ -88,6 +88,7 @@ DEFAULT_SETTINGS: Dict[str, object] = {
     "brightness": 85,
     "orientation": "landscape",
     "refresh_interval_seconds": 2.0,
+    "services": [],
 }
 
 STATIC_ASSETS = {
@@ -161,6 +162,42 @@ def _require_url(data: dict, field: str) -> str:
     return value
 
 
+def _validate_services(data: dict) -> list:
+    """Validate the optional `services` list, returning normalized entries."""
+    services = data.get("services", [])
+    if not isinstance(services, list):
+        raise ConfigValidationError(
+            f"Setting 'services' must be a list, got {services!r}."
+        )
+    normalized_services = []
+    for index, entry in enumerate(services):
+        if not isinstance(entry, dict):
+            raise ConfigValidationError(
+                f"Setting 'services[{index}]' must be an object, got {entry!r}."
+            )
+        name = entry.get("name")
+        if not isinstance(name, str) or not name.strip():
+            raise ConfigValidationError(
+                f"Setting 'services[{index}].name' must be a non-empty string, got {name!r}."
+            )
+        port = entry.get("port")
+        if isinstance(port, bool) or not isinstance(port, int):
+            raise ConfigValidationError(
+                f"Setting 'services[{index}].port' must be an integer, got {port!r}."
+            )
+        if not (1 <= port <= 65535):
+            raise ConfigValidationError(
+                f"Setting 'services[{index}].port' must be between 1 and 65535, got {port!r}."
+            )
+        health = entry.get("health")
+        if not isinstance(health, str) or not health.startswith("/"):
+            raise ConfigValidationError(
+                f"Setting 'services[{index}].health' must start with '/', got {health!r}."
+            )
+        normalized_services.append({"name": name, "port": port, "health": health})
+    return normalized_services
+
+
 def validate_config(data: dict) -> Dict[str, object]:
     """Validate and normalize a full settings dict, never mutating `data`.
 
@@ -211,6 +248,8 @@ def validate_config(data: dict) -> Dict[str, object]:
             f"Setting 'refresh_interval_seconds' must be > 0, got {refresh!r}."
         )
     normalized["refresh_interval_seconds"] = float(refresh)
+
+    normalized["services"] = _validate_services(data)
 
     return normalized
 
