@@ -43,3 +43,4 @@ Separar `MokaApp` en Core testeable + Host lifecycle + UI futura, dejando listo 
 ## Progreso
 - 2026-09-20: creado documento, sin código aún. Rama `feature/moka-tss` @ `71b5b35`.
 - [x] MD-2.6 shadcn + tarjeta Servicios (job 779cd86b, agy). Commit `8e7974a` mergeado. Verificado por padre: React createRoot + alias @ + Card/Badge dark, tsc+build OK. Nota: shims re-export en desktop/{components,lib}/ por convención; negaciones .gitignore porque `lib/` global los tapaba.
+- [x] MD-2.7 Tarjeta IA solo lectura (job 01aef455, agy). Commit `0a70324` mergeado. Verificado por padre (tsc reproducido): helper baseUrl(), fetch /api/rules, Card Mascota con mood + lista reglas.
