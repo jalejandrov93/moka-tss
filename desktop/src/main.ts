@@ -2,7 +2,7 @@ import "./index.css";
 import React from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { listen } from "@tauri-apps/api/event";
-import type { StatusSnapshot, RulesPayload, Rule, ServiceStatus, WslStatus } from "./types";
+import type { StatusSnapshot, RulesPayload, Rule, ServiceStatus, WslStatus, AppConfig } from "./types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -24,6 +24,12 @@ let statusError: unknown = null;
 let rulesError: unknown = null;
 let servicesError: unknown = null;
 let wslError: unknown = null;
+export let currentConfig: AppConfig | null = null;
+let isBrightnessInitialized = false;
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+export let sliderBrightness = 100;
+export let brightnessStatus: "idle" | "applied" | "error" = "idle";
+export let brightnessStatusText = "";
 
 function getRoot(): Root | null {
   if (root) return root;
@@ -405,6 +411,48 @@ function renderSistemaCard(): React.ReactElement {
           { className: "font-mono text-xs text-slate-300" },
           `Brillo: ${brightnessDisplay}`
         )
+      ),
+      React.createElement(
+        "div",
+        { className: "space-y-1.5 pt-2 border-t border-slate-800" },
+        React.createElement(
+          "div",
+          { className: "flex items-center justify-between text-xs font-mono" },
+          React.createElement(
+            "label",
+            { htmlFor: "brightness-slider", className: "font-semibold text-slate-400 uppercase tracking-wider" },
+            "Control de brillo"
+          ),
+          React.createElement(
+            "div",
+            { className: "flex items-center gap-2" },
+            brightnessStatusText
+              ? React.createElement(
+                  Badge,
+                  {
+                    variant: brightnessStatus === "applied" ? "success" : "destructive",
+                    className: "text-[10px] px-1.5 py-0 font-mono",
+                  },
+                  brightnessStatusText
+                )
+              : null,
+            React.createElement(
+              "span",
+              { className: "text-slate-200 font-semibold" },
+              `${sliderBrightness}%`
+            )
+          )
+        ),
+        React.createElement("input", {
+          key: "brightness-slider",
+          id: "brightness-slider",
+          type: "range",
+          min: 0,
+          max: 100,
+          value: sliderBrightness,
+          onChange: handleBrightnessChange,
+          className: "w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500",
+        })
       )
     )
   );
@@ -716,8 +764,74 @@ export async function fetchRules(): Promise<void> {
   }
 }
 
+export function handleBrightnessChange(e: React.ChangeEvent<HTMLInputElement>): void {
+  const nextValue = Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0));
+  sliderBrightness = nextValue;
+  brightnessStatus = "idle";
+  brightnessStatusText = "";
+  renderApp();
+
+  if (debounceTimer !== null) {
+    clearTimeout(debounceTimer);
+  }
+
+  debounceTimer = setTimeout(() => {
+    debounceTimer = null;
+    void sendBrightness(nextValue);
+  }, 300);
+}
+
+export async function sendBrightness(val: number): Promise<void> {
+  try {
+    const response = await fetch(`${baseUrl()}/api/config`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Origin": baseUrl(),
+      },
+      body: JSON.stringify({ brightness: val }),
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const saved = (await response.json()) as AppConfig;
+    if (val === sliderBrightness) {
+      if (typeof saved.brightness === "number") {
+        sliderBrightness = saved.brightness;
+      }
+      currentConfig = saved;
+      brightnessStatus = "applied";
+      brightnessStatusText = "Aplicado";
+      void fetchStatus().then(renderApp);
+    }
+  } catch (err) {
+    console.error("Failed to update brightness:", err);
+    if (val === sliderBrightness) {
+      brightnessStatus = "error";
+      brightnessStatusText = "Error";
+    }
+  }
+  renderApp();
+}
+
+export async function fetchConfig(): Promise<void> {
+  try {
+    const response = await fetch(`${baseUrl()}/api/config`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    currentConfig = (await response.json()) as AppConfig;
+    if (!isBrightnessInitialized && typeof currentConfig.brightness === "number") {
+      sliderBrightness = currentConfig.brightness;
+      isBrightnessInitialized = true;
+    }
+  } catch (err) {
+    console.warn("Error fetching config:", err);
+  }
+}
+
 export async function fetchAll(): Promise<void> {
-  await Promise.all([fetchStatus(), fetchRules()]);
+  await Promise.all([fetchStatus(), fetchRules(), fetchConfig()]);
   renderApp();
 }
 
@@ -758,6 +872,7 @@ async function setupSidecarListener(): Promise<void> {
       const port = event.payload;
       if (typeof port === "number" && port > 0) {
         serverPort = port;
+        isBrightnessInitialized = false;
         void fetchAll();
         void pollServices();
       }
