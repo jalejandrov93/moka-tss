@@ -54,3 +54,8 @@ Separar `MokaApp` en Core testeable + Host lifecycle + UI futura, dejando listo 
 - [x] MD-4.1 Brillo en vivo (job 34661e4e reintento, agy). Commit `1b73fed` mergeado. Verificado por padre: callback on_config_saved best-effort + _apply_saved_settings, 62 tests OK, lint CI 0 tras corregir E731/E306 del worker.
 - [x] MD-4.2 Stats transmisión (opencode nemotron, agy falló 2 veces). Commits mergeados (worker + test padre con serial fake). Verificado por padre: 6 tests stats OK, suite solo 8 Rev C, lint CI 0.
 - [x] MD-4.3 Tarjeta Transmisión (job 78b00b27, agy). Commit `862b5ba` mergeado. Verificado por padre (tsc reproducido): renderTransmisionCard en ciclo existente, null-safe.
+- [ ] MD-4.4 Slider brillo (job 273bb299, agy, md-44-slider).
+- [ ] MD-5.1 Rule info en snapshot (job 21fd0ff9, agy, md-51-rule).
+- [ ] MD-6.1 Diseño editor reglas (job a38def22, agy recon).
+- [ ] MD-8.1 Diseño recovery (job 8dea1a6f, opencode recon).
+- [ ] MD-9.1 Flag --diagnostics vía Jules (job cd6f0b92, PR remoto).
