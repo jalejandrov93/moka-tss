@@ -512,6 +512,163 @@ function renderWslCard(): React.ReactElement {
   );
 }
 
+function renderTransmisionCard(): React.ReactElement {
+  if (statusError) {
+    return React.createElement(
+      Card,
+      { className: "w-full max-w-md bg-slate-950 text-slate-50 border-red-900 shadow-xl" },
+      React.createElement(
+        CardHeader,
+        null,
+        React.createElement(
+          CardTitle,
+          { className: "text-xl font-bold tracking-tight text-red-400" },
+          "Transmisión"
+        )
+      ),
+      React.createElement(
+        CardContent,
+        { className: "space-y-2 font-mono text-sm text-red-400" },
+        React.createElement(
+          "p",
+          null,
+          `Error fetching status: ${statusError instanceof Error ? statusError.message : String(statusError)}`
+        )
+      )
+    );
+  }
+
+  if (!currentStatus) {
+    return React.createElement(
+      Card,
+      { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+      React.createElement(
+        CardHeader,
+        null,
+        React.createElement(
+          CardTitle,
+          { className: "text-xl font-bold tracking-tight text-slate-50" },
+          "Transmisión"
+        )
+      ),
+      React.createElement(
+        CardContent,
+        { className: "space-y-4 font-mono text-sm text-slate-400" },
+        "Cargando transmisión..."
+      )
+    );
+  }
+
+  const tx = currentStatus.transmission;
+
+  if (!tx) {
+    return React.createElement(
+      Card,
+      { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+      React.createElement(
+        CardHeader,
+        { className: "flex flex-row items-center justify-between space-y-0" },
+        React.createElement(
+          CardTitle,
+          { className: "text-xl font-bold tracking-tight text-slate-50" },
+          "Transmisión"
+        ),
+        React.createElement(
+          Badge,
+          { variant: "secondary" },
+          "sin datos"
+        )
+      ),
+      React.createElement(
+        CardContent,
+        { className: "space-y-4 font-mono text-sm text-slate-500 italic py-1" },
+        "sin datos"
+      )
+    );
+  }
+
+  const kbAprox = typeof tx.bytes_sent_total === "number"
+    ? (tx.bytes_sent_total / 1024).toFixed(1)
+    : "0.0";
+  const elapsedMs = typeof tx.last_elapsed_ms === "number"
+    ? Number(tx.last_elapsed_ms.toFixed(1))
+    : 0;
+
+  return React.createElement(
+    Card,
+    { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+    React.createElement(
+      CardHeader,
+      { className: "flex flex-row items-center justify-between space-y-0" },
+      React.createElement(
+        CardTitle,
+        { className: "text-xl font-bold tracking-tight text-slate-50" },
+        "Transmisión"
+      ),
+      React.createElement(
+        Badge,
+        { variant: "default" },
+        `${tx.frames_total} frames`
+      )
+    ),
+    React.createElement(
+      CardContent,
+      { className: "space-y-4" },
+      React.createElement(
+        "div",
+        { className: "space-y-2" },
+        React.createElement(
+          "div",
+          { className: "space-y-1" },
+          React.createElement(
+            "div",
+            { className: "flex justify-between text-xs font-mono" },
+            React.createElement("span", { className: "font-semibold text-slate-400 uppercase tracking-wider" }, "Frames totales"),
+            React.createElement("span", { className: "text-slate-200 font-semibold" }, String(tx.frames_total))
+          ),
+          React.createElement(
+            "div",
+            { className: "flex justify-between text-xs font-mono text-slate-400" },
+            React.createElement("span", null, "Full / Partial"),
+            React.createElement("span", null, `${tx.full_frames} full / ${tx.partial_frames} partial`)
+          )
+        ),
+        React.createElement(
+          "div",
+          { className: "flex justify-between text-xs font-mono" },
+          React.createElement("span", { className: "font-semibold text-slate-400 uppercase tracking-wider" }, "Tiles enviados"),
+          React.createElement("span", { className: "text-slate-200 font-semibold" }, String(tx.tiles_sent_total))
+        ),
+        React.createElement(
+          "div",
+          { className: "flex justify-between text-xs font-mono" },
+          React.createElement("span", { className: "font-semibold text-slate-400 uppercase tracking-wider" }, "KB/s aprox"),
+          React.createElement("span", { className: "text-slate-200 font-semibold" }, `${kbAprox} KB/s`)
+        )
+      ),
+      React.createElement(
+        "div",
+        { className: "flex items-center justify-between pt-3 border-t border-slate-800 text-sm" },
+        React.createElement(
+          "div",
+          { className: "flex items-center gap-2" },
+          React.createElement("span", { className: "text-slate-400 font-medium" }, "Último envío"),
+          React.createElement(
+            Badge,
+            { variant: tx.last_kind === "full" ? "default" : "secondary" },
+            tx.last_kind
+          )
+        ),
+        React.createElement(
+          "span",
+          { className: "font-mono text-xs text-slate-300" },
+          `${elapsedMs} ms (${tx.last_tiles} tiles)`
+        )
+      )
+    )
+  );
+}
+
 function renderApp(): void {
   const currentRoot = getRoot();
   if (!currentRoot) return;
@@ -522,11 +679,12 @@ function renderApp(): void {
       { className: "min-h-screen bg-slate-950 text-slate-50 p-6 flex justify-center items-start" },
       React.createElement(
         "div",
-        { className: "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 w-full max-w-7xl" },
+        { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 w-full max-w-[96rem]" },
         renderServiciosCard(),
         renderMascotaCard(),
         renderSistemaCard(),
-        renderWslCard()
+        renderWslCard(),
+        renderTransmisionCard()
       )
     )
   );
