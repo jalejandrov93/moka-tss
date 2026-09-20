@@ -2,13 +2,14 @@ import "./index.css";
 import React from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { listen } from "@tauri-apps/api/event";
-import type { StatusSnapshot, RulesPayload, Rule } from "./types";
+import type { StatusSnapshot, RulesPayload, Rule, ServiceStatus } from "./types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 const DEFAULT_PORT = 8765;
 let serverPort = DEFAULT_PORT;
 const POLL_INTERVAL_MS = 2000;
+const SERVICES_POLL_INTERVAL_MS = 10000;
 
 export function baseUrl(): string {
   return `http://127.0.0.1:${serverPort}`;
@@ -17,8 +18,10 @@ export function baseUrl(): string {
 let root: Root | null = null;
 let currentStatus: StatusSnapshot | null = null;
 let currentRules: RulesPayload | null = null;
+let currentServices: ServiceStatus[] | null = null;
 let statusError: unknown = null;
 let rulesError: unknown = null;
+let servicesError: unknown = null;
 
 function getRoot(): Root | null {
   if (root) return root;
@@ -29,7 +32,7 @@ function getRoot(): Root | null {
 }
 
 function renderServiciosCard(): React.ReactElement {
-  if (statusError) {
+  if (servicesError) {
     return React.createElement(
       Card,
       { className: "w-full max-w-md bg-slate-950 text-slate-50 border-red-900 shadow-xl" },
@@ -48,13 +51,13 @@ function renderServiciosCard(): React.ReactElement {
         React.createElement(
           "p",
           null,
-          `Error fetching status: ${statusError instanceof Error ? statusError.message : String(statusError)}`
+          `Error fetching services: ${servicesError instanceof Error ? servicesError.message : String(servicesError)}`
         )
       )
     );
   }
 
-  if (!currentStatus) {
+  if (!currentServices) {
     return React.createElement(
       Card,
       { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
@@ -75,6 +78,8 @@ function renderServiciosCard(): React.ReactElement {
     );
   }
 
+  const servicesList = Array.isArray(currentServices) ? currentServices : [];
+
   return React.createElement(
     Card,
     { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
@@ -92,31 +97,46 @@ function renderServiciosCard(): React.ReactElement {
       { className: "space-y-4" },
       React.createElement(
         "div",
-        { className: "flex flex-wrap gap-2 pb-3 border-b border-slate-800" },
+        { className: "space-y-2" },
         React.createElement(
-          Badge,
-          { variant: currentStatus.running ? "success" : "destructive" },
-          `running: ${currentStatus.running}`
+          "div",
+          { className: "text-xs font-semibold text-slate-400 uppercase tracking-wider" },
+          `Servicios (${servicesList.length})`
         ),
         React.createElement(
-          Badge,
-          { variant: currentStatus.agenthub_available ? "success" : "destructive" },
-          `agenthub_available: ${currentStatus.agenthub_available}`
-        ),
-        React.createElement(
-          Badge,
-          { variant: currentStatus.codexbar_available ? "success" : "destructive" },
-          `codexbar_available: ${currentStatus.codexbar_available}`
+          "div",
+          { className: "max-h-48 overflow-y-auto space-y-1.5 pr-1 font-mono text-xs text-slate-300" },
+          servicesList.length === 0
+            ? React.createElement(
+                "div",
+                { className: "text-slate-500 italic py-1" },
+                "sin servicios configurados"
+              )
+            : servicesList.map((svc: ServiceStatus) => {
+                const latencyDisplay = svc.reachable
+                  ? `${typeof svc.latency_ms === "number" ? svc.latency_ms : 0} ms`
+                  : "cerrado";
+
+                return React.createElement(
+                  "div",
+                  {
+                    key: `${svc.name}-${svc.port}`,
+                    className: "py-1.5 px-2.5 rounded bg-slate-900 border border-slate-800 text-slate-300 flex justify-between items-center",
+                  },
+                  React.createElement(
+                    "div",
+                    { className: "flex items-center gap-1.5" },
+                    React.createElement("span", { className: "font-semibold text-slate-200" }, svc.name),
+                    React.createElement("span", { className: "text-slate-500 text-xs" }, `:${svc.port}`)
+                  ),
+                  React.createElement(
+                    Badge,
+                    { variant: svc.reachable ? "success" : "destructive" },
+                    latencyDisplay
+                  )
+                );
+              })
         )
-      ),
-      React.createElement(
-        "div",
-        { className: "space-y-1.5 font-mono text-sm text-slate-300" },
-        React.createElement("div", null, `tick: ${currentStatus.tick}`),
-        React.createElement("div", null, `has_system: ${currentStatus.has_system}`),
-        React.createElement("div", null, `has_snapshot: ${currentStatus.has_snapshot}`),
-        React.createElement("div", null, `has_state: ${currentStatus.has_state}`),
-        React.createElement("div", null, `mood: ${currentStatus.mood ?? "null"}`)
       )
     )
   );
@@ -438,6 +458,24 @@ export async function fetchAll(): Promise<void> {
   renderApp();
 }
 
+export async function fetchServices(): Promise<void> {
+  try {
+    const response = await fetch(`${baseUrl()}/api/services`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    currentServices = (await response.json()) as ServiceStatus[];
+    servicesError = null;
+  } catch (err) {
+    servicesError = err;
+  }
+}
+
+export async function pollServices(): Promise<void> {
+  await fetchServices();
+  renderApp();
+}
+
 async function setupSidecarListener(): Promise<void> {
   try {
     await listen<number>("moka-sidecar-ready", (event) => {
@@ -445,6 +483,7 @@ async function setupSidecarListener(): Promise<void> {
       if (typeof port === "number" && port > 0) {
         serverPort = port;
         void fetchAll();
+        void pollServices();
       }
     });
   } catch (err) {
@@ -454,4 +493,7 @@ async function setupSidecarListener(): Promise<void> {
 
 void setupSidecarListener();
 void fetchAll();
+void pollServices();
 setInterval(fetchAll, POLL_INTERVAL_MS);
+setInterval(pollServices, SERVICES_POLL_INTERVAL_MS);
+

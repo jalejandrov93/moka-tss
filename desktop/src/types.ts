@@ -38,3 +38,11 @@ export interface RulesPayload {
   rules: Rule[];
 }
 
+export interface ServiceStatus {
+  name: string;
+  port: number;
+  health: string;
+  reachable: boolean;
+  latency_ms: number | null;
+}
+
