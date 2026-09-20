@@ -132,6 +132,16 @@ class Screen:
         self.serial_port = serial_port
         self.width, self.height = size
         self._previous: Optional[Image.Image] = None
+        self._stats = {
+            "frames_total": 0,
+            "full_frames": 0,
+            "partial_frames": 0,
+            "tiles_sent_total": 0,
+            "bytes_sent_total": 0,
+            "last_elapsed_ms": 0.0,
+            "last_tiles": 0,
+            "last_kind": "none",
+        }
 
     def set_orientation(self, orientation: int, width: int, height: int) -> None:
         """Send the 16-byte orientation frame. Landscape=2 gives 480x320."""
@@ -154,7 +164,10 @@ class Screen:
         for chunk in chunked(data, chunk_size):
             self.serial_port.write(chunk)
         self.serial_port.flush()
-        return time.perf_counter() - t0
+        elapsed = time.perf_counter() - t0
+        self._stats["frames_total"] += 1
+        self._stats["bytes_sent_total"] += len(data)
+        return elapsed
 
     def show(self, image: Image.Image) -> Tuple[float, int, str]:
         """Send only the tiles that changed since the previous frame.
@@ -177,6 +190,10 @@ class Screen:
         if self._previous is None:
             elapsed = self.push(image)
             self._previous = image.copy()
+            self._stats["full_frames"] += 1
+            self._stats["last_tiles"] = 1
+            self._stats["last_kind"] = "full"
+            self._stats["last_elapsed_ms"] = float(elapsed * 1000)
             return elapsed, 1, "full"
 
         dirty = [box for box in _tile_boxes(self.width, self.height)
@@ -186,8 +203,18 @@ class Screen:
         for box in dirty:
             self.push(image.crop(box), x=box[0], y=box[1])
         self._previous = image.copy()
-        return time.perf_counter() - t0, len(dirty), "partial"
+        elapsed = time.perf_counter() - t0
+        self._stats["partial_frames"] += 1
+        self._stats["last_tiles"] = len(dirty)
+        self._stats["last_kind"] = "partial"
+        self._stats["tiles_sent_total"] += len(dirty)
+        self._stats["last_elapsed_ms"] = float(elapsed * 1000)
+        return elapsed, len(dirty), "partial"
 
     def reset(self) -> None:
         """Forget the previous frame, forcing the next `show()` to be full."""
         self._previous = None
+
+    def stats_snapshot(self) -> dict:
+        """Return a copy of the current transmission statistics."""
+        return dict(self._stats)

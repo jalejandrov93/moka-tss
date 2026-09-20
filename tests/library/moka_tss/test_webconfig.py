@@ -309,9 +309,10 @@ class StatusEndpointTests(WebConfigServerTestCase):
             "mood",
             "system",
             "screen",
+            "transmission",
         }
         self.assertEqual(set(data.keys()), expected_keys)
-        self.assertEqual(len(data), 10)
+        self.assertEqual(len(data), 11)
 
 
 class ServicesEndpointTests(WebConfigServerTestCase):

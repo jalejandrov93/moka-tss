@@ -10,6 +10,17 @@ export interface ScreenInfo {
   brightness: number;
 }
 
+export interface Transmission {
+  frames_total: number;
+  full_frames: number;
+  partial_frames: number;
+  tiles_sent_total: number;
+  bytes_sent_total: number;
+  last_elapsed_ms: number;
+  last_tiles: number;
+  last_kind: string;
+}
+
 export interface StatusSnapshot {
   tick: number;
   running: boolean;
@@ -21,6 +32,7 @@ export interface StatusSnapshot {
   mood: string | null;
   system?: SystemTelemetry;
   screen?: ScreenInfo;
+  transmission?: Transmission | null;
 }
 
 export interface Rule {

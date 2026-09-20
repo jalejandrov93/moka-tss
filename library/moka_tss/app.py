@@ -197,6 +197,14 @@ class MokaApp:
         if isinstance(raw_gpu, dict):
             raw_gpu = raw_gpu.get("util")
 
+        screen_status = {
+            "present": self.screen is not None,
+            "simulate": bool(self.simulate),
+            "brightness": int(self.brightness),
+        }
+
+        transmission = self.screen.stats_snapshot() if self.screen is not None else None
+
         return {
             "tick": int(self.tick_count),
             "running": bool(self._running),
@@ -211,11 +219,8 @@ class MokaApp:
                 "ram": _sanitize_metric(system_data.get("ram")),
                 "gpu": _sanitize_metric(raw_gpu),
             },
-            "screen": {
-                "present": self.screen is not None,
-                "simulate": bool(self.simulate),
-                "brightness": int(self.brightness),
-            },
+            "screen": screen_status,
+            "transmission": transmission,
         }
 
     def _poll_local_sensors(self, now: float) -> None:
