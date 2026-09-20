@@ -2,7 +2,7 @@ import "./index.css";
 import React from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { listen } from "@tauri-apps/api/event";
-import type { StatusSnapshot, RulesPayload, Rule, ServiceStatus } from "./types";
+import type { StatusSnapshot, RulesPayload, Rule, ServiceStatus, WslStatus } from "./types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -19,9 +19,11 @@ let root: Root | null = null;
 let currentStatus: StatusSnapshot | null = null;
 let currentRules: RulesPayload | null = null;
 let currentServices: ServiceStatus[] | null = null;
+let currentWsl: WslStatus | null = null;
 let statusError: unknown = null;
 let rulesError: unknown = null;
 let servicesError: unknown = null;
+let wslError: unknown = null;
 
 function getRoot(): Root | null {
   if (root) return root;
@@ -408,6 +410,108 @@ function renderSistemaCard(): React.ReactElement {
   );
 }
 
+function renderWslCard(): React.ReactElement {
+  if (wslError) {
+    return React.createElement(
+      Card,
+      { className: "w-full max-w-md bg-slate-950 text-slate-50 border-red-900 shadow-xl" },
+      React.createElement(
+        CardHeader,
+        null,
+        React.createElement(
+          CardTitle,
+          { className: "text-xl font-bold tracking-tight text-red-400" },
+          "WSL"
+        )
+      ),
+      React.createElement(
+        CardContent,
+        { className: "space-y-2 font-mono text-sm text-red-400" },
+        React.createElement(
+          "p",
+          null,
+          `Error fetching WSL: ${wslError instanceof Error ? wslError.message : String(wslError)}`
+        )
+      )
+    );
+  }
+
+  if (!currentWsl) {
+    return React.createElement(
+      Card,
+      { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+      React.createElement(
+        CardHeader,
+        null,
+        React.createElement(
+          CardTitle,
+          { className: "text-xl font-bold tracking-tight text-slate-50" },
+          "WSL"
+        )
+      ),
+      React.createElement(
+        CardContent,
+        { className: "space-y-4 font-mono text-sm text-slate-400" },
+        "Cargando WSL..."
+      )
+    );
+  }
+
+  const distrosList = Array.isArray(currentWsl.distros) ? currentWsl.distros : [];
+
+  return React.createElement(
+    Card,
+    { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+    React.createElement(
+      CardHeader,
+      { className: "flex flex-row items-center justify-between space-y-0" },
+      React.createElement(
+        CardTitle,
+        { className: "text-xl font-bold tracking-tight text-slate-50" },
+        "WSL"
+      ),
+      React.createElement(
+        Badge,
+        { variant: currentWsl.available ? "success" : "destructive" },
+        currentWsl.available ? "Running" : "no disponible"
+      )
+    ),
+    React.createElement(
+      CardContent,
+      { className: "space-y-4" },
+      React.createElement(
+        "div",
+        { className: "space-y-2" },
+        React.createElement(
+          "div",
+          { className: "text-xs font-semibold text-slate-400 uppercase tracking-wider" },
+          `Distros (${distrosList.length})`
+        ),
+        React.createElement(
+          "div",
+          { className: "max-h-48 overflow-y-auto space-y-1.5 pr-1 font-mono text-xs text-slate-300" },
+          distrosList.length === 0
+            ? React.createElement(
+                "div",
+                { className: "text-slate-500 italic py-1" },
+                "sin distros"
+              )
+            : distrosList.map((distro: string) =>
+                React.createElement(
+                  "div",
+                  {
+                    key: distro,
+                    className: "py-1.5 px-2.5 rounded bg-slate-900 border border-slate-800 text-slate-300 flex justify-between items-center",
+                  },
+                  React.createElement("span", { className: "font-semibold text-slate-200" }, distro)
+                )
+              )
+        )
+      )
+    )
+  );
+}
+
 function renderApp(): void {
   const currentRoot = getRoot();
   if (!currentRoot) return;
@@ -418,10 +522,11 @@ function renderApp(): void {
       { className: "min-h-screen bg-slate-950 text-slate-50 p-6 flex justify-center items-start" },
       React.createElement(
         "div",
-        { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl" },
+        { className: "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 w-full max-w-7xl" },
         renderServiciosCard(),
         renderMascotaCard(),
-        renderSistemaCard()
+        renderSistemaCard(),
+        renderWslCard()
       )
     )
   );
@@ -471,8 +576,21 @@ export async function fetchServices(): Promise<void> {
   }
 }
 
+export async function fetchWsl(): Promise<void> {
+  try {
+    const response = await fetch(`${baseUrl()}/api/wsl`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    currentWsl = (await response.json()) as WslStatus;
+    wslError = null;
+  } catch (err) {
+    wslError = err;
+  }
+}
+
 export async function pollServices(): Promise<void> {
-  await fetchServices();
+  await Promise.all([fetchServices(), fetchWsl()]);
   renderApp();
 }
 

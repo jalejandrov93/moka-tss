@@ -46,3 +46,8 @@ export interface ServiceStatus {
   latency_ms: number | null;
 }
 
+export interface WslStatus {
+  available: boolean;
+  distros: string[];
+}
+
