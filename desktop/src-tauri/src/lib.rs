@@ -3,6 +3,7 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Emitter, Manager, WindowEvent,
 };
+use tauri_plugin_shell::{process::CommandEvent, ShellExt};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -23,6 +24,36 @@ pub fn run() {
             }
         }))
         .setup(|app| {
+            let (mut rx, _child) = app
+                .shell()
+                .sidecar("moka-sidecar")?
+                .args(["--no-tray"])
+                .spawn()?;
+
+            let app_handle = app.handle().clone();
+            std::thread::spawn(move || {
+                let _child = _child;
+                while let Some(event) = rx.blocking_recv() {
+                    match event {
+                        CommandEvent::Stdout(line_bytes) => {
+                            let text = String::from_utf8_lossy(&line_bytes);
+                            for line in text.lines() {
+                                let trimmed = line.trim();
+                                if let Some(rest) = trimmed.strip_prefix("MOKA_READY port=") {
+                                    if let Ok(port) = rest.trim().parse::<u16>() {
+                                        let _ = app_handle.emit("moka-sidecar-ready", port);
+                                    }
+                                }
+                            }
+                        }
+                        CommandEvent::Terminated(_) => {
+                            let _ = app_handle.emit("moka-sidecar-crashed", ());
+                        }
+                        _ => {}
+                    }
+                }
+            });
+
             let tray_menu = MenuBuilder::new(app)
                 .text("open", "Abrir Mascota")
                 .separator()
