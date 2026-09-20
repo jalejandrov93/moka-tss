@@ -129,5 +129,57 @@ class WslDiscoveryTests(unittest.TestCase):
         self.assertEqual(paths, [expected])
 
 
+class WslStatusTests(unittest.TestCase):
+    def setUp(self):
+        wsl.clear_wsl_cache()
+
+    def tearDown(self):
+        wsl.clear_wsl_cache()
+
+    @mock.patch("sys.platform", "linux")
+    def test_wsl_status_non_windows_returns_available_false(self):
+        result = wsl.wsl_status()
+        self.assertFalse(result["available"])
+        self.assertEqual(result["distros"], [])
+
+    @mock.patch("sys.platform", "darwin")
+    def test_wsl_status_macos_returns_available_false(self):
+        result = wsl.wsl_status()
+        self.assertFalse(result["available"])
+        self.assertEqual(result["distros"], [])
+
+    @mock.patch("sys.platform", "win32")
+    @mock.patch("library.moka_tss.wsl.get_wsl_distros")
+    def test_wsl_status_windows_returns_distros(self, mock_get_distros):
+        mock_get_distros.return_value = ["Ubuntu", "Debian", "Kali"]
+        result = wsl.wsl_status()
+        self.assertTrue(result["available"])
+        self.assertEqual(result["distros"], ["Ubuntu", "Debian", "Kali"])
+
+    @mock.patch("sys.platform", "win32")
+    @mock.patch("library.moka_tss.wsl.get_wsl_distros")
+    def test_wsl_status_exception_in_discovery_never_raises(self, mock_get_distros):
+        mock_get_distros.side_effect = RuntimeError("wsl.exe crashed")
+        result = wsl.wsl_status()
+        self.assertFalse(result["available"])
+        self.assertEqual(result["distros"], [])
+
+    @mock.patch("sys.platform", "win32")
+    @mock.patch("library.moka_tss.wsl.get_wsl_distros")
+    def test_wsl_status_oserror_in_discovery_never_raises(self, mock_get_distros):
+        mock_get_distros.side_effect = OSError("permission denied")
+        result = wsl.wsl_status()
+        self.assertFalse(result["available"])
+        self.assertEqual(result["distros"], [])
+
+    @mock.patch("sys.platform", "win32")
+    @mock.patch("library.moka_tss.wsl.get_wsl_distros")
+    def test_wsl_status_empty_distros_list(self, mock_get_distros):
+        mock_get_distros.return_value = []
+        result = wsl.wsl_status()
+        self.assertTrue(result["available"])
+        self.assertEqual(result["distros"], [])
+
+
 if __name__ == "__main__":
     unittest.main()

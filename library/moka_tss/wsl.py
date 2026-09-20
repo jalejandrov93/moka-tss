@@ -136,3 +136,20 @@ def find_wsl_candidate_paths(
 
     _CACHED_WSL_CANDIDATE_PATHS = candidates
     return list(candidates)
+
+
+def wsl_status() -> dict:
+    """Return WSL availability and discovered distros.
+
+    Never raises: any exception during discovery is caught and results in
+    `available=False` with an empty distros list.
+    """
+    available = is_windows()
+    distros: list[str] = []
+    if available:
+        try:
+            distros = get_wsl_distros()
+        except Exception:
+            available = False
+            distros = []
+    return {"available": available, "distros": distros}

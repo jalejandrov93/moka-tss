@@ -392,6 +392,22 @@ class ServicesEndpointTests(WebConfigServerTestCase):
         self.assertIn("error", json.loads(body))
 
 
+class WslEndpointTests(WebConfigServerTestCase):
+    def test_get_wsl_endpoint_returns_json(self):
+        status, body = self._get("/api/wsl")
+        self.assertEqual(status, 200)
+        data = json.loads(body)
+        self.assertIn("available", data)
+        self.assertIn("distros", data)
+        self.assertIsInstance(data["available"], bool)
+        self.assertIsInstance(data["distros"], list)
+
+    def test_get_wsl_rejects_invalid_host(self):
+        status, body = self._get("/api/wsl", headers={"Host": "evil.example.com"})
+        self.assertEqual(status, 403)
+        self.assertIn("error", json.loads(body))
+
+
 class AtomicWriteTests(WebConfigServerTestCase):
     def test_failed_write_leaves_previous_config_intact(self):
         status, _ = self._post_json("/api/config", {"brightness": 55})
