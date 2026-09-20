@@ -51,3 +51,4 @@ Separar `MokaApp` en Core testeable + Host lifecycle + UI futura, dejando listo 
 - [x] MD-2.9c Tarjeta Servicios (job 551f50d0, agy). Commit `968b0c0` mergeado. Verificado por padre (tsc reproducido): ServiceStatus, poll 10s + refresh tras puerto, badges por reachable.
 - [x] MD-3.3 Endpoint /api/wsl (opencode nemotron, agy falló 2 veces en este slice). Commit mergeado. Verificado por padre: 50 tests foco OK, suite solo 8 Rev C, lint CI 0. Mensaje de commit normalizado a feat(moka).
 - [x] MD-3.4 Tarjeta WSL (job ea1d7425, agy). Commit `8dee40a` mergeado. Verificado por padre (tsc reproducido): WslStatus, fetch en ciclo services, Badge + lista distros.
+- [x] MD-4.1 Brillo en vivo (job 34661e4e reintento, agy). Commit `1b73fed` mergeado. Verificado por padre: callback on_config_saved best-effort + _apply_saved_settings, 62 tests OK, lint CI 0 tras corregir E731/E306 del worker.
