@@ -64,3 +64,4 @@ Separar `MokaApp` en Core testeable + Host lifecycle + UI futura, dejando listo 
 - [x] MD-8.1 Diseño recovery (opencode recon): watchdog en step(), transiciones por subsistema, 5 acciones ordenadas, lista de NUNCAs.
 - [ ] MD-5.1 Rule info (agy falló 2 veces; pivote opencode job fa7eab82, md-51-rule).
 - [ ] MD-9.1 Flag --diagnostics vía Jules (job cd6f0b92).
+- [x] MD-5.1 Rule info en snapshot (opencode nemotron, agy falló 2 veces). Commit mergeado (mensaje normalizado a feat(moka)). Verificado por padre: step usa evaluate_detailed, _evaluate_mood intacto, 62 tests OK, suite solo 8 Rev C, lint CI 0. Contrato ahora 12 claves.
