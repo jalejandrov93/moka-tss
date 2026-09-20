@@ -160,6 +160,19 @@ class MokaApp:
             "running": self._running,
         }
 
+    def status_snapshot(self) -> Dict[str, Any]:
+        """Return a JSON-serializable snapshot of application state."""
+        status = self._get_status()
+        return {
+            "tick": int(status["tick"]),
+            "running": bool(status["running"]),
+            "agenthub_available": bool(status["agenthub_available"]),
+            "codexbar_available": bool(status["codexbar_available"]),
+            "has_system": self.last_system is not None,
+            "has_snapshot": self.last_snapshot is not None,
+            "has_state": self.last_state is not None,
+        }
+
     def _poll_local_sensors(self, now: float) -> None:
         if (now - self._last_sensors_time) < self.tick_interval:
             return
