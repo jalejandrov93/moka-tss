@@ -1,0 +1,122 @@
+<!--
+SPDX-License-Identifier: GPL-3.0-or-later
+
+turing-smart-screen-python - a Python system monitor and library for USB-C displays
+Mascota fork - local web configuration panel (D13)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version. See LICENSE for the full text.
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mascota &mdash; Configuraci&oacute;n</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="app-root">
+    <header class="status-bar" aria-label="Estado del panel">
+      <span class="status-item">
+        <span id="status-dot" class="status-dot" aria-hidden="true"></span>
+        <span id="status-connected">Sin datos</span>
+      </span>
+      <span class="status-item">Mascota: <strong id="status-mood">&mdash;</strong></span>
+      <span class="status-item">&Uacute;ltima actualizaci&oacute;n: <span id="status-refresh">&mdash;</span></span>
+    </header>
+
+    <main>
+      <h1>Panel de configuraci&oacute;n</h1>
+      <p id="global-message" class="message" role="status" aria-live="polite"></p>
+
+      <form id="config-form" novalidate>
+        <fieldset class="panel">
+          <legend>Endpoints</legend>
+
+          <label for="codexbar-url">URL de codexbar</label>
+          <input id="codexbar-url" name="codexbar_url" type="url" required
+                 placeholder="http://127.0.0.1:8787" autocomplete="off">
+
+          <label for="agenthub-url">URL de agent-hub</label>
+          <input id="agenthub-url" name="agenthub_url" type="url" required
+                 placeholder="http://127.0.0.1:7777" autocomplete="off">
+        </fieldset>
+
+        <fieldset class="panel">
+          <legend>Proveedores visibles</legend>
+          <p class="hint">Desmarc&aacute; los que no quer&eacute;s ver en la pantalla.</p>
+          <div id="providers-list" class="providers-list"></div>
+        </fieldset>
+
+        <fieldset class="panel">
+          <legend>Pantalla</legend>
+
+          <label for="brightness">Brillo (%)</label>
+          <div class="range-row">
+            <input id="brightness" name="brightness" type="range" min="0" max="100" step="1"
+                   aria-describedby="brightness-value">
+            <output id="brightness-value" for="brightness">85</output>
+          </div>
+
+          <label for="orientation">Orientaci&oacute;n</label>
+          <select id="orientation" name="orientation">
+            <option value="landscape">Horizontal</option>
+            <option value="portrait">Vertical</option>
+          </select>
+
+          <label for="refresh-interval">Intervalo de actualizaci&oacute;n (segundos)</label>
+          <input id="refresh-interval" name="refresh_interval_seconds" type="number"
+                 min="0.1" step="0.1" required>
+        </fieldset>
+
+        <div class="actions">
+          <button type="submit">Guardar configuraci&oacute;n</button>
+        </div>
+      </form>
+
+      <section class="panel" aria-labelledby="rules-heading">
+        <h2 id="rules-heading">Reglas de alerta</h2>
+        <p class="hint">Cada regla convierte una m&eacute;trica en un estado de &aacute;nimo de la mascota.</p>
+
+        <div class="rules-meta">
+          <label for="default-mood">&Aacute;nimo por defecto</label>
+          <select id="default-mood" name="default_mood"></select>
+
+          <label for="moods-list">&Aacute;nimos declarados (separados por coma)</label>
+          <input id="moods-list" name="moods" type="text"
+                 placeholder="durmiendo, calma, atenta, agobiada, alarmada, error">
+        </div>
+
+        <table id="rules-table" class="rules-table">
+          <thead>
+            <tr>
+              <th scope="col">Id</th>
+              <th scope="col">M&eacute;trica</th>
+              <th scope="col">Operador</th>
+              <th scope="col">Valor</th>
+              <th scope="col">Durante (s)</th>
+              <th scope="col">Ánimo</th>
+              <th scope="col">Prioridad</th>
+              <th scope="col">Liberar en</th>
+              <th scope="col">Liberar tras (s)</th>
+              <th scope="col"><span class="sr-only">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody id="rules-body"></tbody>
+        </table>
+
+        <div class="actions">
+          <button type="button" id="add-rule-button">Agregar regla</button>
+          <button type="button" id="save-rules-button">Guardar reglas</button>
+        </div>
+        <p id="rules-message" class="message" role="status" aria-live="polite"></p>
+      </section>
+    </main>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
