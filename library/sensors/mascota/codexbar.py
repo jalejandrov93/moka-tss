@@ -33,8 +33,10 @@ No method here ever raises: CustomDataSource consumers (the theme renderer)
 must never crash or block past the HTTP timeout because codexbar is down.
 """
 
+import logging
 import math
 import os
+import sys
 import threading
 import time
 from pathlib import Path
@@ -42,12 +44,17 @@ from typing import Dict, List, Optional, Tuple
 
 import requests
 
+from library.mascota import wsl
 from library.sensors.sensors_custom import CustomDataSource
+
+logger = logging.getLogger("mascota.codexbar")
 
 DEFAULT_BASE_URL = "http://127.0.0.1:8787"
 BASE_URL_ENV_VAR = "MASCOTA_CODEXBAR_URL"
 TOKEN_ENV_VAR = "CODEXBAR_DASHBOARD_TOKEN"
+TOKEN_FILE_ENV_VAR = "MASCOTA_CODEXBAR_TOKEN_FILE"
 TOKEN_FILE_PATH = Path.home() / ".config" / "codexbar" / "dashboard-token"
+DEFAULT_RELATIVE_TOKEN_PATH = Path(".config") / "codexbar" / "dashboard-token"
 
 SNAPSHOT_ENDPOINT = "/dashboard/v1/snapshot"
 
@@ -68,20 +75,43 @@ UNAVAILABLE_AFTER_SECONDS = 15 * 60.0
 HISTORY_LENGTH = 10
 
 
-def _resolve_token() -> Optional[str]:
-    """Resolve the dashboard bearer token: env var first, then the token file.
+def _candidate_token_paths() -> List[Path]:
+    """Return ordered candidate file paths for the codexbar dashboard token."""
+    candidates: List[Path] = []
+    override = os.environ.get(TOKEN_FILE_ENV_VAR)
+    if override and override.strip():
+        candidates.append(Path(override.strip()))
+    candidates.append(TOKEN_FILE_PATH)
+    if sys.platform == "win32":
+        candidates.extend(wsl.find_wsl_candidate_paths(DEFAULT_RELATIVE_TOKEN_PATH))
+    return candidates
 
-    Never hardcode a token here. Returns None if neither source has one.
+
+def _resolve_token() -> Optional[str]:
+    """Resolve the dashboard bearer token: env var, explicit file, home path, WSL.
+
+    Never hardcode a token here. Returns None if no source has one, logging an error
+    listing all searched candidate paths.
     """
     token = os.environ.get(TOKEN_ENV_VAR)
     if token and token.strip():
         return token.strip()
-    try:
-        raw = TOKEN_FILE_PATH.read_text(encoding="utf-8")
-    except OSError:
-        return None
-    raw = raw.strip()
-    return raw or None
+
+    candidate_paths = _candidate_token_paths()
+    for path in candidate_paths:
+        try:
+            raw = path.read_text(encoding="utf-8").strip()
+            if raw:
+                return raw
+        except OSError:
+            continue
+
+    lines = ["Codexbar dashboard token not found. Searched candidate paths:"]
+    for p in candidate_paths:
+        lines.append(f"  - {p}")
+    lines.append(f"Set {TOKEN_ENV_VAR} or {TOKEN_FILE_ENV_VAR} to configure the token.")
+    logger.error("\n".join(lines))
+    return None
 
 
 def _resolve_base_url() -> str:

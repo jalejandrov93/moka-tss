@@ -6,7 +6,9 @@
 
 import json
 import math
+import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
 import requests
@@ -226,6 +228,98 @@ class CodexBarClientHappyPathTests(unittest.TestCase):
         client = codexbar.CodexBarClient()
 
         self.assertEqual(codexbar.build_sources(client=client), {})
+
+
+class TokenResolutionTests(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp_dir.cleanup)
+        self.temp_path = Path(self.temp_dir.name)
+
+    def test_env_var_wins_over_everything(self):
+        override_file = self.temp_path / "override-token"
+        override_file.write_text("override-token-val\n", encoding="utf-8")
+        home_file = self.temp_path / "home-token"
+        home_file.write_text("home-token-val\n", encoding="utf-8")
+
+        env = {
+            "CODEXBAR_DASHBOARD_TOKEN": "env-token-val",
+            "MASCOTA_CODEXBAR_TOKEN_FILE": str(override_file),
+        }
+        with mock.patch.dict("os.environ", env, clear=True), \
+             mock.patch.object(codexbar, "TOKEN_FILE_PATH", home_file):
+            token = codexbar._resolve_token()
+
+        self.assertEqual(token, "env-token-val")
+
+    def test_explicit_file_override_wins_over_home_path(self):
+        override_file = self.temp_path / "override-token"
+        override_file.write_text("override-token-val\n", encoding="utf-8")
+        home_file = self.temp_path / "home-token"
+        home_file.write_text("home-token-val\n", encoding="utf-8")
+
+        env = {
+            "MASCOTA_CODEXBAR_TOKEN_FILE": str(override_file),
+        }
+        with mock.patch.dict("os.environ", env, clear=True), \
+             mock.patch.object(codexbar, "TOKEN_FILE_PATH", home_file):
+            token = codexbar._resolve_token()
+
+        self.assertEqual(token, "override-token-val")
+
+    def test_home_path_used_when_it_exists(self):
+        home_file = self.temp_path / "home-token"
+        home_file.write_text("home-token-val\n", encoding="utf-8")
+
+        with mock.patch.dict("os.environ", {}, clear=True), \
+             mock.patch.object(codexbar, "TOKEN_FILE_PATH", home_file):
+            token = codexbar._resolve_token()
+
+        self.assertEqual(token, "home-token-val")
+
+    @mock.patch("sys.platform", "linux")
+    def test_non_windows_skips_wsl_probe(self):
+        non_existent_home = self.temp_path / "does-not-exist"
+        with mock.patch.dict("os.environ", {}, clear=True), \
+             mock.patch.object(codexbar, "TOKEN_FILE_PATH", non_existent_home), \
+             mock.patch("library.mascota.wsl.find_wsl_candidate_paths") as mock_wsl:
+            token = codexbar._resolve_token()
+
+        self.assertIsNone(token)
+        mock_wsl.assert_not_called()
+
+    @mock.patch("sys.platform", "win32")
+    def test_windows_uses_wsl_path_when_earlier_steps_fail(self):
+        non_existent_home = self.temp_path / "does-not-exist"
+        wsl_token_file = self.temp_path / "wsl-token"
+        wsl_token_file.write_text("wsl-token-val\n", encoding="utf-8")
+
+        with mock.patch.dict("os.environ", {}, clear=True), \
+             mock.patch.object(codexbar, "TOKEN_FILE_PATH", non_existent_home), \
+             mock.patch("library.mascota.wsl.find_wsl_candidate_paths", return_value=[wsl_token_file]):
+            token = codexbar._resolve_token()
+
+        self.assertEqual(token, "wsl-token-val")
+
+    @mock.patch("sys.platform", "win32")
+    def test_failure_message_names_every_path_tried(self):
+        override_file = self.temp_path / "missing-override"
+        home_file = self.temp_path / "missing-home"
+        wsl_candidate = Path(r"\\wsl.localhost\Ubuntu\home\alejandro\.config\codexbar\dashboard-token")
+
+        env = {"MASCOTA_CODEXBAR_TOKEN_FILE": str(override_file)}
+        with mock.patch.dict("os.environ", env, clear=True), \
+             mock.patch.object(codexbar, "TOKEN_FILE_PATH", home_file), \
+             mock.patch("library.mascota.wsl.find_wsl_candidate_paths", return_value=[wsl_candidate]), \
+             mock.patch.object(codexbar.logger, "error") as mock_error:
+            token = codexbar._resolve_token()
+
+        self.assertIsNone(token)
+        mock_error.assert_called_once()
+        error_msg = mock_error.call_args[0][0]
+        self.assertIn(str(override_file), error_msg)
+        self.assertIn(str(home_file), error_msg)
+        self.assertIn(str(wsl_candidate), error_msg)
 
 
 if __name__ == "__main__":

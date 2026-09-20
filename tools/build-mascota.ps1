@@ -20,11 +20,12 @@ if (-not (Test-Path ".\mascota.spec")) {
     Fail "mascota.spec not found. Run this script from the repository root."
 }
 
-# The venv must already exist; creating it implicitly would hide version
-# mistakes (the project pins C:\Python313), so refuse instead of guessing.
-$VenvPython = ".\venv\Scripts\python.exe"
-if (-not (Test-Path $VenvPython)) {
-    Fail "Venv not found at $VenvPython. Create it first, e.g.: C:\Python313\python.exe -m venv venv"
+$VenvPython = if (Test-Path ".\.venv\Scripts\python.exe") {
+    ".\.venv\Scripts\python.exe"
+} elseif (Test-Path ".\venv\Scripts\python.exe") {
+    ".\venv\Scripts\python.exe"
+} else {
+    Fail "Venv not found at .\venv or .\.venv. Create it first, e.g.: C:\Python313\python.exe -m venv .venv"
 }
 
 Write-Host "Installing requirements..."
