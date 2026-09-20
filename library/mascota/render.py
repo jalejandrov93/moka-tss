@@ -346,6 +346,7 @@ def render(snapshot: Optional[dict], state: Optional[dict], system: Optional[dic
            size: Optional[Tuple[int, int]] = None,
            theme: Optional[Theme] = None,
            sprites: Optional[MascotSprites] = None,
+           mood: Optional[str] = None,
            tick: int = 0,
            hidden_providers=HIDDEN_PROVIDERS,
            now: Callable[[], time.struct_time] = time.localtime) -> Image.Image:
@@ -383,11 +384,15 @@ def render(snapshot: Optional[dict], state: Optional[dict], system: Optional[dic
     providers = _visible_providers(snapshot, hidden_providers)
     jobs = _running_jobs(state)
     worst, worst_name = _worst_provider_usage(providers)
-    mood = _compute_mood(
-        snapshot, providers,
-        red_threshold=palette.critical_threshold,
-        amber_threshold=palette.warning_threshold,
-    )
+    # The caller may already know the mood - the app resolves it through the
+    # rule engine, which sees metrics this function never receives. Only fall
+    # back to the quota-only heuristic when nobody supplied one.
+    if mood is None:
+        mood = _compute_mood(
+            snapshot, providers,
+            red_threshold=palette.critical_threshold,
+            amber_threshold=palette.warning_threshold,
+        )
     accent = level_color(worst, theme=theme)
 
     clock_text = time.strftime("%H:%M", now())

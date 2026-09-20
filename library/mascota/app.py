@@ -119,17 +119,16 @@ def default_renderer(
     tick: int = 0,
     **kwargs: Any,
 ) -> Image.Image:
-    """Render a dashboard frame, dynamically passing the mood from RuleEngine."""
-    if mood is not None:
-        orig_compute = render_module._compute_mood
-        try:
-            render_module._compute_mood = lambda s, p: mood
-            return render_module.render(
-                snapshot, state, system, sprites=sprites, tick=tick, **kwargs
-            )
-        finally:
-            render_module._compute_mood = orig_compute
-    return render_module.render(snapshot, state, system, sprites=sprites, tick=tick, **kwargs)
+    """Render a dashboard frame, passing through the mood the rule engine chose.
+
+    The mood is handed to render() as an argument. An earlier version injected it
+    by swapping out render's private _compute_mood at runtime, which broke render's
+    purity, was not thread-safe inside a refresh loop, and shattered the moment
+    that private function gained a parameter.
+    """
+    return render_module.render(
+        snapshot, state, system, sprites=sprites, mood=mood, tick=tick, **kwargs
+    )
 
 
 class MascotaApp:

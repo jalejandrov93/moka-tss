@@ -289,3 +289,26 @@ class TestMascotaApp(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RendererThemeIntegrationTests(unittest.TestCase):
+    """The app and the compositor were built in parallel. Each suite passed on
+    its own while the pair was broken, because nothing exercised the seam."""
+
+    def test_default_renderer_works_with_a_real_theme(self):
+        from library.mascota import app as app_module
+        from library.mascota.theme import load_theme
+
+        system = {"cpu": 40.0, "ram": 50.0, "gpu": None}
+        snapshot = {"providers": [{"id": "claude", "name": "Claude",
+                                   "windows": [{"kind": "session", "label": "Session",
+                                                "usedPercent": 95}],
+                                   "display": {"accentColor": "#CC7C5E"}}]}
+        for name in ("horizontal", "vertical"):
+            with self.subTest(theme=name):
+                frame = app_module.default_renderer(
+                    snapshot, None, system,
+                    mood="alarmada", sprites=None, tick=0,
+                    theme=load_theme(name),
+                )
+                self.assertIsNotNone(frame)
