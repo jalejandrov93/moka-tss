@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+!lib/
+!src/lib/
+
 # Tauri / Cargo
 src-tauri/target
 
