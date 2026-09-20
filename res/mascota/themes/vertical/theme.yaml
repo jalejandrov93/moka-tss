@@ -1,0 +1,83 @@
+# Tema Mascota: Vertical (320x480)
+# Disposición vertical (retrato) con reflujo completo para la Turing Smart Screen 3.5".
+# Las cuotas ocupan el ancho completo superior; sistema y mascota conviven en la mitad inferior.
+
+name: "vertical"
+author: "Mascota Team"
+description: "Disposición vertical 320x480 con reflujo real de cuotas y paneles inferiores paralelos"
+version: 1
+
+display:
+  # Resolución vertical nativa y orientación retrato
+  size: [320, 480]
+  orientation: "portrait"
+
+palette:
+  # Paleta de contraste Dark Mode OLED (Decisión D9)
+  background: "#0F172A"       # Fondo principal oscuro
+  panel: "#1E293B"            # Fondo de paneles y barra de estado
+  lines: "#334155"            # Líneas divisorias y segmentos de barras apagados
+  text: "#F8FAFC"             # Texto blanco de alto contraste
+  muted: "#6E7D96"            # Texto secundario atenuado
+  accent: "#22C55E"           # Acento verde para niveles normales
+  warning: "#EAB308"          # Ámbar para advertencia (>= 75%)
+  critical: "#EF4444"         # Rojo para alerta crítica (>= 90%)
+  warning_threshold: 75.0     # Umbral de advertencia en porcentaje
+  critical_threshold: 90.0    # Umbral crítico en porcentaje
+
+fonts:
+  # Tipografías con cadena de degradación segura
+  candidates:
+    - "C:/Windows/Fonts/CascadiaCode.ttf"
+    - "C:/Windows/Fonts/consola.ttf"
+    - "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
+    - "DejaVuSansMono.ttf"
+
+regions:
+  # Posiciones declaradas como fracciones del lienzo (0.0 a 1.0)
+  # Barra de estado superior: jobs, peor cuota y reloj
+  status_bar:
+    x: 0.0
+    y: 0.0
+    width: 1.0
+    height: 0.055             # ~26px sobre 480px de alto
+
+  # Indicador de jobs activos en la barra de estado
+  jobs:
+    x: 0.0
+    y: 0.0
+    width: 0.35
+    height: 0.055
+
+  # Sección superior completa: cuotas de proveedores a ancho completo
+  quotas:
+    x: 0.0
+    y: 0.055
+    width: 1.0                # 320px de ancho total con barras holgadas
+    height: 0.445             # ~214px de alto
+
+  # Mitad inferior izquierda: sensores del sistema (CPU, GPU, RAM, VRAM)
+  system:
+    x: 0.0
+    y: 0.51
+    width: 0.55               # 176px de ancho
+    height: 0.49              # ~235px de alto
+
+  # Mitad inferior derecha: mascota animada y etiqueta de ánimo
+  mascot:
+    x: 0.55
+    y: 0.51
+    width: 0.45               # 144px de ancho (aloja sprite 96x96 centrado)
+    height: 0.49
+
+separators:
+  # Línea horizontal entre cuotas superiores y paneles inferiores
+  - x1: 0.04
+    y1: 0.505
+    x2: 0.96
+    y2: 0.505
+  # Línea vertical divisoria entre sistema y mascota
+  - x1: 0.55
+    y1: 0.52
+    x2: 0.55
+    y2: 0.98

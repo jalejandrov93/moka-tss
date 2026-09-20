@@ -1,0 +1,72 @@
+# Tema Mascota: Ámbar Retro CRT (480x320)
+# Estética monocromática de terminal fósforo ámbar para ambientes oscuros.
+# Minimiza la emisión de luz azul y maximiza la legibilidad nocturna tipo instrumento clásico.
+
+name: "amber"
+author: "Mascota Team"
+description: "Estética retro fósforo ámbar tipo terminal CRT para escritorios de desarrollo"
+version: 1
+
+display:
+  # Resolución horizontal 480x320
+  size: [480, 320]
+  orientation: "landscape"
+
+palette:
+  # Paleta cálida de fósforo ámbar y alto contraste
+  background: "#120C00"       # Negro cálido muy oscuro
+  panel: "#241704"            # Marrón ámbar profundo para paneles
+  lines: "#482D08"            # Segmentos inactivos y bordes ámbar atenuado
+  text: "#FFB000"             # Ámbar clásico de terminal CRT
+  muted: "#8C6214"            # Ámbar oscuro para texto secundario
+  accent: "#FFA000"           # Ámbar brillante para acento normal
+  warning: "#FF6A00"          # Naranja cálido para advertencia (>= 75%)
+  critical: "#FF2200"         # Rojo fuego para alerta crítica (>= 90%)
+  warning_threshold: 75.0     # Umbral de advertencia en porcentaje
+  critical_threshold: 90.0    # Umbral crítico en porcentaje
+
+fonts:
+  # Monospace con degradación progresiva
+  candidates:
+    - "C:/Windows/Fonts/CascadiaCode.ttf"
+    - "C:/Windows/Fonts/consola.ttf"
+    - "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
+    - "DejaVuSansMono.ttf"
+
+regions:
+  # Distribución horizontal con proporciones calibradas
+  status_bar:
+    x: 0.0
+    y: 0.0
+    width: 1.0
+    height: 0.075
+
+  jobs:
+    x: 0.0
+    y: 0.0
+    width: 0.25
+    height: 0.075
+
+  quotas:
+    x: 0.0
+    y: 0.075
+    width: 0.575
+    height: 0.925
+
+  system:
+    x: 0.575
+    y: 0.075
+    width: 0.425
+    height: 0.475
+
+  mascot:
+    x: 0.575
+    y: 0.55
+    width: 0.425
+    height: 0.45
+
+separators:
+  - x1: 0.575
+    y1: 0.10
+    x2: 0.575
+    y2: 0.97

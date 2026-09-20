@@ -47,9 +47,11 @@ interface below; this module only calls it, it never implements it.
 
 import time
 from functools import lru_cache
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Sequence, Tuple
 
 from PIL import Image, ImageDraw, ImageFont
+
+from library.mascota.theme import Theme, load_theme
 
 # ----------------------------------------------------------------- interfaces
 
@@ -104,9 +106,10 @@ FONT_CANDIDATES = (
 )
 
 
-@lru_cache(maxsize=8)
-def _load_font(size: int) -> ImageFont.FreeTypeFont:
-    for path in FONT_CANDIDATES:
+@lru_cache(maxsize=32)
+def _load_font(size: int, candidates: Optional[Sequence[str]] = None) -> ImageFont.FreeTypeFont:
+    paths = candidates if candidates is not None else FONT_CANDIDATES
+    for path in paths:
         try:
             return ImageFont.truetype(path, size)
         except OSError:
@@ -114,13 +117,25 @@ def _load_font(size: int) -> ImageFont.FreeTypeFont:
     return ImageFont.load_default()
 
 
-def level_color(percent: float, accent: Optional[Tuple[int, int, int]] = None) -> Tuple[int, int, int]:
-    """Map a 0-100 usage percentage to the D9 alert palette."""
-    if percent >= RED_THRESHOLD:
-        return RED
-    if percent >= AMBER_THRESHOLD:
-        return AMBER
-    return accent or GREEN
+@lru_cache(maxsize=4)
+def _get_default_theme(name: str = "horizontal") -> Theme:
+    return load_theme(name)
+
+
+def level_color(percent: float, accent: Optional[Tuple[int, int, int]] = None,
+                theme: Optional[Theme] = None) -> Tuple[int, int, int]:
+    """Map a 0-100 usage percentage to the alert palette."""
+    red_thresh = theme.palette.critical_threshold if theme else RED_THRESHOLD
+    amber_thresh = theme.palette.warning_threshold if theme else AMBER_THRESHOLD
+    red_col = theme.palette.critical if theme else RED
+    amber_col = theme.palette.warning if theme else AMBER
+    default_accent = theme.palette.accent if theme else GREEN
+
+    if percent >= red_thresh:
+        return red_col
+    if percent >= amber_thresh:
+        return amber_col
+    return accent or default_accent
 
 
 def _hex_rgb(value, fallback=GREEN) -> Tuple[int, int, int]:
@@ -131,17 +146,23 @@ def _hex_rgb(value, fallback=GREEN) -> Tuple[int, int, int]:
         return fallback
 
 
-def _segmented_bar(draw: ImageDraw.ImageDraw, x, y, w, h, frac, color, segments=16) -> None:
+def _segmented_bar(draw: ImageDraw.ImageDraw, x, y, w, h, frac, color,
+                   unlit_color: Tuple[int, int, int] = LINE, segments: int = 16) -> None:
     """Segmented bar: reads as an instrument, not a web progress bar."""
     gap = 2
-    segment_w = (w - gap * (segments - 1)) / segments
+    available_w = w - gap * (segments - 1)
+    if available_w <= 0:
+        draw.rectangle([x, y, x + max(1, w), y + h], fill=color if frac > 0 else unlit_color)
+        return
+    segment_w = available_w / segments
     lit = int(round(max(0.0, min(1.0, frac)) * segments))
     for i in range(segments):
         sx = x + i * (segment_w + gap)
-        draw.rectangle([sx, y, sx + segment_w, y + h], fill=color if i < lit else LINE)
+        draw.rectangle([sx, y, sx + segment_w, y + h], fill=color if i < lit else unlit_color)
 
 
 def _visible_providers(snapshot, hidden_providers):
+
     if not snapshot:
         return []
     providers = snapshot.get("providers") or []
@@ -176,7 +197,8 @@ def _worst_provider_usage(providers):
     return worst, name
 
 
-def _compute_mood(snapshot, providers) -> str:
+def _compute_mood(snapshot, providers, red_threshold: float = RED_THRESHOLD,
+                  amber_threshold: float = AMBER_THRESHOLD) -> str:
     """Derive the mascot mood from quota pressure.
 
     `snapshot is None` means codexbar never answered at all -- an honest
@@ -185,9 +207,9 @@ def _compute_mood(snapshot, providers) -> str:
     if snapshot is None:
         return "error"
     worst, _ = _worst_provider_usage(providers)
-    if worst >= RED_THRESHOLD:
+    if worst >= red_threshold:
         return "alarmada"
-    if worst >= AMBER_THRESHOLD:
+    if worst >= amber_threshold:
         return "atenta"
     return "calma"
 
@@ -199,33 +221,41 @@ def _running_jobs(state):
     return [j for j in jobs if isinstance(j, dict) and j.get("status") == "running"]
 
 
-def _draw_status_bar(draw, width, accent, worst, worst_name, jobs, clock_text):
-    f_sm = _load_font(11)
-    f_md = _load_font(13)
+def _draw_status_bar(draw, rect, palette, fonts_candidates, accent, worst, worst_name, jobs, clock_text, theme=None):
+    rx, ry, rw, rh = rect
+    f_sm = _load_font(11, fonts_candidates)
+    f_md = _load_font(13, fonts_candidates)
 
-    draw.rectangle([0, 0, width, STATUS_BAR_HEIGHT], fill=PANEL)
-    draw.rectangle([0, 0, 3, STATUS_BAR_HEIGHT], fill=accent)
+    draw.rectangle([rx, ry, rx + rw, ry + rh], fill=palette.panel)
+    draw.rectangle([rx, ry, rx + 3, ry + rh], fill=accent)
 
-    dot_color = GREEN if jobs else MUTED
-    draw.ellipse([12, 10, 18, 16], fill=dot_color)
-    draw.text((24, 7), f"{len(jobs)} jobs", font=f_sm, fill=TEXT if jobs else MUTED)
+    dot_color = palette.accent if jobs else palette.muted
+    draw.ellipse([rx + 12, ry + 10, rx + 18, ry + 16], fill=dot_color)
+    draw.text((rx + 24, ry + 7), f"{len(jobs)} jobs", font=f_sm, fill=palette.text if jobs else palette.muted)
 
     if worst_name:
-        draw.text((width - 62, 7), f"{worst_name[:9].lower()} {worst:.0f}%",
-                  font=f_sm, fill=level_color(worst), anchor="ra")
-    draw.text((width - 12, 6), clock_text, font=f_md, fill=TEXT, anchor="ra")
+        worst_color = level_color(worst, theme=theme)
+        draw.text((rx + rw - 62, ry + 7), f"{worst_name[:9].lower()} {worst:.0f}%",
+                  font=f_sm, fill=worst_color, anchor="ra")
+    draw.text((rx + rw - 12, ry + 6), clock_text, font=f_md, fill=palette.text, anchor="ra")
 
 
-def _draw_quota_column(draw, providers, split_x):
-    f_xs = _load_font(10)
-    f_sm = _load_font(11)
-    f_md = _load_font(13)
+def _draw_quota_column(draw, rect, providers, palette, fonts_candidates, theme):
+    rx, ry, rw, rh = rect
+    f_xs = _load_font(10, fonts_candidates)
+    f_sm = _load_font(11, fonts_candidates)
+    f_md = _load_font(13, fonts_candidates)
 
-    draw.text((12, 34), "CUOTAS", font=f_xs, fill=MUTED)
-    y = 52
+    draw.text((rx + 12, ry + 10), "CUOTAS", font=f_xs, fill=palette.muted)
+    y = ry + 28
     # Fewer providers -> taller rows, with room for the window label.
     step = 32 if len(providers) > 4 else 48
-    right_edge = split_x - 24
+    if len(providers) > 0 and y + step * len(providers) > ry + rh:
+        available = max(30, rh - 28)
+        step = max(24, available // len(providers))
+
+    right_edge = rx + rw - 24
+    bar_w = max(10, rw - 36)
     for p in providers:
         windows = p.get("windows") or []
         # Same guard as _worst_provider_usage: a provider that errored can hand
@@ -233,30 +263,33 @@ def _draw_quota_column(draw, providers, split_x):
         busiest = max(windows, key=lambda win: _safe_percent(win.get("usedPercent"))) if windows else {}
         used = _safe_percent(busiest.get("usedPercent"))
         name = (p.get("id") or "?").lower()
-        color = level_color(used, _hex_rgb((p.get("display") or {}).get("accentColor")))
-        draw.text((12, y), name[:12], font=f_md if step > 32 else f_sm, fill=TEXT)
+        provider_accent = _hex_rgb((p.get("display") or {}).get("accentColor"), fallback=palette.accent)
+        color = level_color(used, provider_accent, theme=theme)
+        draw.text((rx + 12, y), name[:12], font=f_md if step > 32 else f_sm, fill=palette.text)
         draw.text((right_edge, y + 1), f"{used:>3.0f}%", font=f_sm, fill=color, anchor="ra")
-        _segmented_bar(draw, 12, y + 18, split_x - 36, 6 if step > 32 else 5, used / 100.0, color)
+        _segmented_bar(draw, rx + 12, y + 18, bar_w, 6 if step > 32 else 5, used / 100.0, color, unlit_color=palette.lines)
         if step > 32:
             reset = (busiest.get("resetAt") or "")[11:16]
             tail = (busiest.get("label") or "").lower()
             if reset:
                 tail = f"{tail}  reset {reset}"
-            draw.text((12, y + 28), tail[:34], font=f_xs, fill=MUTED)
+            draw.text((rx + 12, y + 28), tail[:34], font=f_xs, fill=palette.muted)
         y += step
 
     if not providers:
-        draw.text((12, y), "codexbar sin respuesta", font=f_sm, fill=RED)
+        draw.text((rx + 12, y), "codexbar sin respuesta", font=f_sm, fill=palette.critical)
 
 
-def _draw_system_column(draw, system, split_x, width):
-    f_xs = _load_font(10)
-    f_sm = _load_font(11)
+def _draw_system_column(draw, rect, system, palette, fonts_candidates, theme):
+    rx, ry, rw, rh = rect
+    f_xs = _load_font(10, fonts_candidates)
+    f_sm = _load_font(11, fonts_candidates)
 
     system = system or {}
-    sx, sw = split_x + 16, width - split_x - 28
-    draw.text((sx, 34), "SISTEMA", font=f_xs, fill=MUTED)
-    y = 52
+    sx = rx + 16
+    sw = max(10, rw - 28)
+    draw.text((sx, ry + 10), "SISTEMA", font=f_xs, fill=palette.muted)
+    y = ry + 28
     gpu = system.get("gpu")
     rows = [
         ("cpu", system.get("cpu"), None),
@@ -265,40 +298,53 @@ def _draw_system_column(draw, system, split_x, width):
         ("vram", gpu["vram"] if gpu else None,
          f"{gpu['vram_used'] / 1024:.1f}G" if gpu else None),
     ]
+    step = 30
+    if len(rows) > 0 and y + step * len(rows) > ry + rh:
+        available = max(30, rh - 28)
+        step = max(20, available // len(rows))
+
     for label, value, extra in rows:
-        draw.text((sx, y), label, font=f_sm, fill=TEXT)
+        draw.text((sx, y), label, font=f_sm, fill=palette.text)
         if value is None:
-            draw.text((sx + sw, y), "n/d", font=f_sm, fill=MUTED, anchor="ra")
-            _segmented_bar(draw, sx, y + 16, sw, 5, 0.0, LINE, segments=10)
+            draw.text((sx + sw, y), "n/d", font=f_sm, fill=palette.muted, anchor="ra")
+            _segmented_bar(draw, sx, y + 16, sw, 5, 0.0, palette.lines, unlit_color=palette.lines, segments=10)
         else:
-            color = level_color(value)
+            color = level_color(value, theme=theme)
             tail = f"{value:>3.0f}%" + (f" {extra}" if extra else "")
             draw.text((sx + sw, y), tail, font=f_sm, fill=color, anchor="ra")
-            _segmented_bar(draw, sx, y + 16, sw, 5, value / 100.0, color, segments=10)
-        y += 30
+            _segmented_bar(draw, sx, y + 16, sw, 5, value / 100.0, color, unlit_color=palette.lines, segments=10)
+        y += step
     return sx, sw
 
 
-def _draw_mascot(image, draw, sprites, mood, tick, sx, sw, height, accent):
-    f_xs = _load_font(10)
+def _draw_mascot(image, draw, rect, sprites, mood, tick, palette, fonts_candidates, accent):
+
+    rx, ry, rw, rh = rect
+    f_xs = _load_font(10, fonts_candidates)
     size = getattr(sprites, "SIZE", 96) if sprites is not None else 84
-    mx = sx + (sw - size) // 2
-    my = height - size - 26
+    actual_size = min(size, rw - 4, rh - 24) if (rw < size or rh < size + 24) else size
+    actual_size = max(16, actual_size)
+    mx = rx + max(0, (rw - actual_size) // 2)
+    my = ry + max(0, rh - actual_size - 24)
 
     if sprites is not None:
         frame = sprites.frame(mood, tick)
+        if actual_size != getattr(sprites, "SIZE", 96):
+            frame = frame.resize((actual_size, actual_size), Image.NEAREST)
         image.paste(frame, (mx, my), frame if frame.mode == "RGBA" else None)
     else:
-        # Degraded: sprite sheet unavailable, draw a neutral placeholder so
-        # the panel still shows something honest instead of a hole.
         draw.rounded_rectangle(
-            [mx, my, mx + size, my + size], radius=10, fill=PANEL, outline=accent, width=2)
+            [mx, my, mx + actual_size, my + actual_size],
+            radius=10, fill=palette.panel, outline=accent, width=2,
+        )
 
-    draw.text((sx + sw // 2, height - 20), mood.upper(), font=f_xs, fill=accent, anchor="ma")
+    label_y = min(ry + rh - 16, my + actual_size + 4)
+    draw.text((rx + rw // 2, label_y), mood.upper(), font=f_xs, fill=accent, anchor="ma")
 
 
 def render(snapshot: Optional[dict], state: Optional[dict], system: Optional[dict], *,
-           size: Tuple[int, int] = DEFAULT_SIZE,
+           size: Optional[Tuple[int, int]] = None,
+           theme: Optional[Theme] = None,
            sprites: Optional[MascotSprites] = None,
            tick: int = 0,
            hidden_providers=HIDDEN_PROVIDERS,
@@ -317,25 +363,57 @@ def render(snapshot: Optional[dict], state: Optional[dict], system: Optional[dic
     task; when None the mascot area degrades to a neutral placeholder
     instead of raising or leaving a hole.
     """
+    if theme is None:
+        if size is not None and size[1] > size[0]:
+            theme = _get_default_theme("vertical")
+        else:
+            theme = _get_default_theme("horizontal")
+
+    if size is None:
+        size = theme.display.size
+
     width, height = size
-    image = Image.new("RGB", size, BACKGROUND)
+    canvas_size = (width, height)
+    palette = theme.palette
+    fonts_candidates = theme.fonts.candidates
+
+    image = Image.new("RGB", size, palette.background)
     draw = ImageDraw.Draw(image)
 
     providers = _visible_providers(snapshot, hidden_providers)
     jobs = _running_jobs(state)
     worst, worst_name = _worst_provider_usage(providers)
-    mood = _compute_mood(snapshot, providers)
-    accent = level_color(worst)
+    mood = _compute_mood(
+        snapshot, providers,
+        red_threshold=palette.critical_threshold,
+        amber_threshold=palette.warning_threshold,
+    )
+    accent = level_color(worst, theme=theme)
 
     clock_text = time.strftime("%H:%M", now())
 
-    _draw_status_bar(draw, width, accent, worst, worst_name, jobs, clock_text)
+    # Draw status bar
+    sb_rect = theme.regions["status_bar"].resolve(canvas_size)
+    _draw_status_bar(
+        draw, sb_rect, palette, fonts_candidates, accent,
+        worst, worst_name, jobs, clock_text, theme=theme,
+    )
 
-    draw.line([COLUMN_SPLIT_X, STATUS_BAR_HEIGHT + 8, COLUMN_SPLIT_X, height - 10],
-              fill=LINE, width=1)
+    # Draw separators
+    for sep in theme.separators:
+        x1, y1, x2, y2 = sep.resolve(canvas_size)
+        draw.line([x1, y1, x2, y2], fill=palette.lines, width=1)
 
-    _draw_quota_column(draw, providers, COLUMN_SPLIT_X)
-    sx, sw = _draw_system_column(draw, system, COLUMN_SPLIT_X, width)
-    _draw_mascot(image, draw, sprites, mood, tick, sx, sw, height, accent)
+    # Draw quota column
+    q_rect = theme.regions["quotas"].resolve(canvas_size)
+    _draw_quota_column(draw, q_rect, providers, palette, fonts_candidates, theme)
+
+    # Draw system column
+    sys_rect = theme.regions["system"].resolve(canvas_size)
+    _draw_system_column(draw, sys_rect, system, palette, fonts_candidates, theme)
+
+    # Draw mascot
+    m_rect = theme.regions["mascot"].resolve(canvas_size)
+    _draw_mascot(image, draw, m_rect, sprites, mood, tick, palette, fonts_candidates, accent)
 
     return image

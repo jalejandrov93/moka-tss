@@ -1,0 +1,78 @@
+# Tema Mascota: Horizontal (480x320)
+# Disposición horizontal por defecto, estilo Dark Mode OLED (Decisión D9).
+# Diseñado para pantalla Turing Smart Screen 3.5" en orientación horizontal.
+
+name: "horizontal"
+author: "Mascota Team"
+description: "Disposición horizontal clásica 480x320 con modo oscuro OLED y barras segmentadas"
+version: 1
+
+display:
+  # Resolución nativa horizontal y orientación
+  size: [480, 320]
+  orientation: "landscape"
+
+palette:
+  # Colores del sistema de diseño D9 (Dark Mode OLED)
+  background: "#0F172A"       # Fondo principal oscuro
+  panel: "#1E293B"            # Fondo de paneles y barra de estado
+  lines: "#334155"            # Líneas divisorias y segmentos apagados
+  text: "#F8FAFC"             # Texto principal de alto contraste
+  muted: "#6E7D96"            # Texto atenuado para etiquetas secundarias
+  accent: "#22C55E"           # Acento verde para estado normal
+  warning: "#EAB308"          # Ámbar para advertencia
+  critical: "#EF4444"         # Rojo para alerta crítica
+  warning_threshold: 75.0     # Umbral de advertencia en porcentaje
+  critical_threshold: 90.0    # Umbral crítico en porcentaje
+
+fonts:
+  # Cadena de fuentes con degradación progresiva
+  candidates:
+    - "C:/Windows/Fonts/CascadiaCode.ttf"
+    - "C:/Windows/Fonts/consola.ttf"
+    - "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
+    - "DejaVuSansMono.ttf"
+
+regions:
+  # Posiciones declaradas como fracciones del lienzo (0.0 a 1.0)
+  # Barra de estado superior: jobs activos, peor cuota y reloj
+  status_bar:
+    x: 0.0
+    y: 0.0
+    width: 1.0
+    height: 0.075             # 24px sobre 320px de alto
+
+  # Indicador de jobs activos dentro de la barra de estado
+  jobs:
+    x: 0.0
+    y: 0.0
+    width: 0.25
+    height: 0.075
+
+  # Columna izquierda: lista de cuotas de proveedores de IA
+  quotas:
+    x: 0.0
+    y: 0.075
+    width: 0.575              # 276px sobre 480px de ancho
+    height: 0.925
+
+  # Panel superior derecho: sensores de hardware (CPU, GPU, RAM, VRAM)
+  system:
+    x: 0.575
+    y: 0.075
+    width: 0.425              # 204px sobre 480px de ancho
+    height: 0.475
+
+  # Panel inferior derecho: sprite de mascota animada y etiqueta de ánimo
+  mascot:
+    x: 0.575
+    y: 0.55
+    width: 0.425
+    height: 0.45
+
+separators:
+  # Línea vertical divisoria entre columna izquierda y derecha
+  - x1: 0.575
+    y1: 0.10
+    x2: 0.575
+    y2: 0.97
