@@ -328,24 +328,44 @@ class MascotaApp:
         self._render_and_output(mood)
         self.tick_count += 1
 
-    def open_config(self, icon: Any = None, item: Any = None) -> None:
-        """Open the web configuration panel in the default browser without stopping the dashboard."""
+    def start_config_server(self) -> Optional[int]:
+        """Start the loopback config panel if it is not already serving.
+
+        Called at startup rather than only from the tray, so the panel has a
+        stable address the user can bookmark. Starting it on demand meant the
+        URL only existed after someone found the tray icon and clicked it, and
+        it died with every restart, leaving an open browser tab pointing at
+        nothing. It listens on 127.0.0.1 and costs a socket.
+
+        Returns the port it is serving on, or None if it could not start.
+        """
         if self.web_server is None:
             try:
                 from library.mascota.webconfig import WebConfigServer
                 self.web_server = WebConfigServer(status_provider=self._get_status)
             except Exception as exc:
                 logger.error("Failed to initialize WebConfigServer: %s", exc)
-                return
+                return None
 
         if getattr(self.web_server, "_httpd", None) is None:
             try:
                 self.web_server.start()
             except Exception as exc:
                 logger.error("Failed to start WebConfigServer: %s", exc)
-                return
+                return None
 
-        port = getattr(self.web_server, "port", 8765)
+        return getattr(self.web_server, "port", None)
+
+    def open_config(self, icon: Any = None, item: Any = None) -> None:
+        """Show the config panel, starting it first if it is not up yet.
+
+        pystray calls a menu action with (icon, item), hence the two unused
+        parameters. Unlike upstream's tray action, this does not stop the
+        dashboard: you can reconfigure it while it keeps refreshing.
+        """
+        port = self.start_config_server()
+        if port is None:
+            return
         webbrowser.open(f"http://127.0.0.1:{port}")
 
     def _init_hardware(self) -> None:
@@ -413,6 +433,9 @@ class MascotaApp:
 
         try:
             self._init_hardware()
+            port = self.start_config_server()
+            if port is not None:
+                logger.info("Panel de configuración en http://127.0.0.1:%d", port)
             self._setup_tray()
             self._run_loop()
         finally:

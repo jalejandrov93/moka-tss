@@ -312,3 +312,53 @@ class RendererThemeIntegrationTests(unittest.TestCase):
                     theme=load_theme(name),
                 )
                 self.assertIsNotNone(frame)
+
+
+class ConfigServerAtStartupTests(unittest.TestCase):
+    """The panel used to exist only after someone found the tray icon and
+    clicked it, so its URL was unbookmarkable and died on every restart."""
+
+    def test_run_starts_the_config_server(self):
+        from library.mascota import app as app_module
+
+        started = []
+
+        class FakeServer:
+            port = 9999
+            _httpd = None
+
+            def start(self):
+                self._httpd = object()
+                started.append(True)
+
+            def stop(self):
+                self._httpd = None
+
+        app = app_module.MascotaApp(simulate=True, tray_enabled=False,
+                                    web_server=FakeServer())
+        port = app.start_config_server()
+        self.assertEqual(port, 9999)
+        self.assertEqual(started, [True])
+
+    def test_start_config_server_is_idempotent(self):
+        from library.mascota import app as app_module
+
+        calls = []
+
+        class FakeServer:
+            port = 9999
+
+            def __init__(self):
+                self._httpd = object()
+
+            def start(self):
+                calls.append(True)
+
+            def stop(self):
+                pass
+
+        app = app_module.MascotaApp(simulate=True, tray_enabled=False,
+                                    web_server=FakeServer())
+        app.start_config_server()
+        app.start_config_server()
+        self.assertEqual(calls, [], "an already-serving panel must not be restarted")
