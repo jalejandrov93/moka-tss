@@ -46,3 +46,4 @@ Separar `MokaApp` en Core testeable + Host lifecycle + UI futura, dejando listo 
 - [x] MD-2.7 Tarjeta IA solo lectura (job 01aef455, agy). Commit `0a70324` mergeado. Verificado por padre (tsc reproducido): helper baseUrl(), fetch /api/rules, Card Mascota con mood + lista reglas.
 - [x] MD-2.8a Telemetría en snapshot (job 09b72017 reintento, agy; primer intento no-op). Commit `bd3f97d` mergeado. Verificado por padre: `_sanitize_metric` (None/bool/NaN→None), system{cpu,ram,gpu}+screen{present,simulate,brightness}, 47 tests foco OK, suite solo 8 Rev C, lint CI 0.
 - [x] MD-2.8b Tarjeta Sistema/Turing (job 74467860, agy). Commit `4e987fa` mergeado. Verificado por padre (tsc reproducido): SystemTelemetry/ScreenInfo en types, barras con umbrales 75/90, estado Turing.
+- [x] MD-2.9a Probador TCP de servicios (job e936a64a, agy). Commit `cc17306` mergeado. Verificado por padre: SPDX, 6 tests OK, lint CI 0.
