@@ -1,3 +1,4 @@
+import "./index.css";
 import { listen } from "@tauri-apps/api/event";
 import type { StatusSnapshot } from "./types";
 
@@ -10,7 +11,7 @@ function renderStatus(status: StatusSnapshot): void {
   if (!container) return;
 
   container.innerHTML = `
-    <div style="font-family: monospace; padding: 20px;">
+    <div class="font-mono" style="padding: 20px;">
       <h2>Moka TSS Status</h2>
       <ul>
         <li><strong>tick:</strong> ${status.tick}</li>
@@ -31,7 +32,7 @@ function renderError(error: unknown): void {
   if (!container) return;
 
   container.innerHTML = `
-    <div style="font-family: monospace; padding: 20px; color: red;">
+    <div class="font-mono" style="padding: 20px; color: red;">
       <h2>Moka TSS Status</h2>
       <p>Error fetching status: ${error instanceof Error ? error.message : String(error)}</p>
     </div>
