@@ -38,6 +38,7 @@ Separar `MokaApp` en Core testeable + Host lifecycle + UI futura, dejando listo 
 - [x] MD-2.2 Alinear `/api/status` con `status_snapshot()` (7 claves). Hecho 2026-09-20 vía agy gemini-3.8-flash-high (job 49d41fca). Commit `97569fe` mergeado. Verificado por padre: 50 tests foco OK, suite completa solo 8 Rev C, flake8 limpio. Nota: reporte del worker vacío pero el diff era correcto y mínimo.
 - [x] MD-1.7 Spawn sidecar en Rust (job 632f89fa, agy). Commit `a5e3ee1` (commiteado por padre). Mergeado. NO compilado — pendiente Windows.
 - [x] MD-2.4 Puerto descubierto en frontend (job 3ffd7c48, agy). Commit `b400fee` mergeado. Verificado por padre (tsc reproducido): `listen('moka-sidecar-ready')` con await en try/catch, fallback 8765, fetch inmediato.
+- [x] MD-2.5 Tailwind v3 cableado (job a0af38a7, agy). Commit `9051d71` mergeado. Verificado por padre: index.css con directivas, content paths, build emite CSS 4.23kB. Sin shadcn aún.
 
 ## Progreso
 - 2026-09-20: creado documento, sin código aún. Rama `feature/moka-tss` @ `71b5b35`.
