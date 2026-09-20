@@ -59,3 +59,8 @@ Separar `MokaApp` en Core testeable + Host lifecycle + UI futura, dejando listo 
 - [ ] MD-6.1 Diseño editor reglas (job a38def22, agy recon).
 - [ ] MD-8.1 Diseño recovery (job 8dea1a6f, opencode recon).
 - [ ] MD-9.1 Flag --diagnostics vía Jules (job cd6f0b92, PR remoto).
+- [x] MD-4.4 Slider brillo (job 273bb299, agy). Merge `6b3f053` (merge real tras borrar rama antes de tiempo, recuperado por hash — NO repetir). Verificado por padre (tsc reproducido): debounce 300ms, POST con Origin, guard stale, init desde /api/config.
+- [x] MD-6.1 Diseño editor reglas (agy recon): UI lista+form+preview TS local, validaciones a espejar, slices MD-6.1..6.4.
+- [x] MD-8.1 Diseño recovery (opencode recon): watchdog en step(), transiciones por subsistema, 5 acciones ordenadas, lista de NUNCAs.
+- [ ] MD-5.1 Rule info (agy falló 2 veces; pivote opencode job fa7eab82, md-51-rule).
+- [ ] MD-9.1 Flag --diagnostics vía Jules (job cd6f0b92).
