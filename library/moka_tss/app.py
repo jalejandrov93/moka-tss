@@ -47,7 +47,27 @@ __all__ = [
     "MokaApp",
     "MascotaApp",
     "default_renderer",
+    "format_ready_line",
 ]
+
+
+def format_ready_line(port: Any) -> str:
+    """Format readiness line signaled to the host process or Tauri sidecar.
+
+    Args:
+        port: Integer TCP port number in the range 1-65535.
+
+    Returns:
+        The formatted ready signal line: 'MOKA_READY port=<port>'.
+
+    Raises:
+        ValueError: If port is not an integer or is outside the range 1-65535.
+    """
+    if isinstance(port, bool) or not isinstance(port, int):
+        raise ValueError(f"Invalid port: {port!r} (must be an integer)")
+    if not (1 <= port <= 65535):
+        raise ValueError(f"Port out of range: {port} (must be 1-65535)")
+    return f"MOKA_READY port={port}"
 
 
 def default_renderer(
@@ -390,6 +410,7 @@ class MokaApp:
             port = self.start_config_server()
             if port is not None:
                 logger.info("Panel de configuración en http://127.0.0.1:%d", port)
+                print(format_ready_line(port), flush=True)
             self._setup_tray()
             self._run_loop()
         finally:
