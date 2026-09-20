@@ -150,6 +150,7 @@ class MokaApp:
         self.last_system: Optional[Dict[str, Any]] = None
         self.last_state: Optional[Dict[str, Any]] = None
         self.last_snapshot: Optional[Dict[str, Any]] = None
+        self.last_mood: Optional[str] = None
         self.agenthub_available = False
         self.codexbar_available = False
 
@@ -185,6 +186,7 @@ class MokaApp:
             "has_system": self.last_system is not None,
             "has_snapshot": self.last_snapshot is not None,
             "has_state": self.last_state is not None,
+            "mood": self.last_mood,
         }
 
     def _poll_local_sensors(self, now: float) -> None:
@@ -293,6 +295,7 @@ class MokaApp:
         self._poll_codexbar(now)
         metrics = self._collect_rule_metrics()
         mood = self._evaluate_mood(metrics)
+        self.last_mood = str(mood) if mood is not None else None
         self._render_and_output(mood)
         self.tick_count += 1
 
