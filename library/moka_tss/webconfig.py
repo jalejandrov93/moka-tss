@@ -596,6 +596,12 @@ class _ConfigRequestHandler(BaseHTTPRequestHandler):
             self._send_error_json(HTTPStatus.INTERNAL_SERVER_ERROR, f"Could not save theme: {exc}")
             return
         self._send_json(HTTPStatus.OK, saved.get("theme", DEFAULT_SETTINGS["theme"]))
+        callback = getattr(self.server, "on_config_saved", None)
+        if callback is not None:
+            try:
+                callback(saved)
+            except Exception:
+                pass
 
 
 class _ConfigHTTPServer(ThreadingHTTPServer):

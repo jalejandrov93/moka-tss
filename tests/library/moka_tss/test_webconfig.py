@@ -171,6 +171,19 @@ class ConfigEndpointTests(WebConfigServerTestCase):
         saved = json.loads(body)
         self.assertEqual(saved["brightness"], 45)
 
+    def test_post_theme_invokes_on_config_saved_callback(self):
+        received = []
+
+        def cb(saved):
+            received.append(saved)
+
+        self.server._httpd.on_config_saved = cb
+        theme = {"id": "t", "name": "T", "cards": [], "mascotVariant": "husky"}
+        status, _ = self._post_json("/api/theme", theme)
+        self.assertEqual(status, 200)
+        self.assertEqual(len(received), 1)
+        self.assertEqual(received[0]["theme"]["mascotVariant"], "husky")
+
 
 class SecurityTests(WebConfigServerTestCase):
     def test_post_with_wrong_origin_is_rejected(self):
