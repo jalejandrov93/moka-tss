@@ -1,7 +1,7 @@
 # Empaquetado completo de Windows (Python sidecar + Tauri desktop)
 
 Esta guía explica cómo generar el instalador de Windows completo para MOKA TSS:
-- **Python sidecar** (`moka-sidecar.exe`): dashboard que controla la pantalla y expone API local.
+- **Python sidecar** (`moka-sidecar-x86_64-pc-windows-msvc.exe`): dashboard que controla la pantalla y expone API local.
 - **Tauri desktop** (`MOKA TSS.msi` / `.exe`): shell React que lanza el sidecar y muestra la UI.
 
 El resultado son instaladores en `desktop\src-tauri\target\release\bundle\`.
@@ -28,7 +28,7 @@ powershell -ExecutionPolicy Bypass -File tools\package-windows.ps1
 
 El script orquesta tres pasos internos:
 
-1. **Python sidecar** → llama a `tools\build-moka-tss.ps1` (PyInstaller sobre `moka-tss.spec`), produce `dist\moka\moka.exe` y lo copia a `desktop\src-tauri\binaries\moka-sidecar.exe`.
+1. **Python sidecar** → llama a `tools\build-sidecar.ps1` (PyInstaller sobre `moka-sidecar.spec`, consola para `MOKA_READY`), produce `dist\moka-sidecar.exe` y lo copia a `desktop\src-tauri\binaries\moka-sidecar-x86_64-pc-windows-msvc.exe` (convención Tauri).
 2. **Frontend Tauri** → `npm install` + `npm run build` dentro de `desktop\` (compila React + TypeScript + Vite).
 3. **Instalador Tauri** → `npx tauri build` (compila Rust, enlaza el sidecar, genera `.msi` y `.exe`).
 
@@ -40,7 +40,7 @@ Si solo cambias código React/TypeScript y el sidecar ya está construido:
 powershell -ExecutionPolicy Bypass -File tools\package-windows.ps1 -SkipSidecar
 ```
 
-Esto salta el paso 1 y usa el `moka-sidecar.exe` existente en `desktop\src-tauri\binaries\`.
+Esto salta el paso 1 y usa el `moka-sidecar-x86_64-pc-windows-msvc.exe` existente en `desktop\src-tauri\binaries\`.
 
 ## Dónde salen los instaladores
 
@@ -93,19 +93,19 @@ LibreHardwareMonitor (DLLs en `external\LibreHardwareMonitor\`) necesita elevaci
 - Borrar `node_modules` y `package-lock.json` en `desktop\` y reintentar.
 
 ### El sidecar no arranca (`MOKA_READY` no aparece)
-- Verificar que `desktop\src-tauri\binaries\moka-sidecar.exe` existe y es ejecutable.
-- Ejecutar manualmente: `.\desktop\src-tauri\binaries\moka-sidecar.exe --no-tray --simulate` → debe imprimir `MOKA_READY port=8765`.
+- Verificar que `desktop\src-tauri\binaries\moka-sidecar-x86_64-pc-windows-msvc.exe` existe y es ejecutable.
+- Ejecutar manualmente: `.\desktop\src-tauri\binaries\moka-sidecar-x86_64-pc-windows-msvc.exe --no-tray --simulate` → debe imprimir `MOKA_READY port=8765`.
 - Si falla, revisar logs de Python (dependencias faltantes, puerto COM ocupado, etc.).
 
 ### Puerto del panel de configuración no es 8765
-El contrato sidecar-Tauri usa `MOKA_READY port=<p>` en stdout. Hasta que el Rust lo parseé (`desktop/src-tauri/src/lib.rs` pendiente), el frontend sondea `http://127.0.0.1:8765/api/status` hardcodeado.
-- Si cambias el puerto en `config.yaml` o CLI, la UI no descubrirá el sidecar hasta que se implemente el parseo en Rust.
+El contrato sidecar-Tauri usa `MOKA_READY port=<p>` en stdout, parseado por Rust (`desktop/src-tauri/src/lib.rs`, evento `moka-sidecar-ready`) y consumido por el frontend.
+- Si cambias el puerto, la UI lo descubre sola vía el evento.
 
 ## Estructura de archivos relevantes
 
 ```
 tools/
-├── build-moka-tss.ps1      # Build solo Python sidecar (PyInstaller)
+├── build-sidecar.ps1       # Build solo Python sidecar (PyInstaller → binaries/ con nombre Tauri)
 └── package-windows.ps1     # ESTE ORQUESTADOR (sidecar + Tauri)
 
 desktop/

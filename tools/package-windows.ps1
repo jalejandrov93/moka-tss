@@ -2,7 +2,8 @@
 
 # Orchestrator script for full Windows package: Python sidecar + Tauri desktop.
 # Run from repository root: powershell -ExecutionPolicy Bypass -File tools\package-windows.ps1
-# Optional: -SkipSidecar to skip Python sidecar build (requires pre-built sidecar in desktop\src-tauri\binaries\moka-sidecar.exe)
+# Optional: -SkipSidecar to skip Python sidecar build (requires pre-built sidecar at
+# desktop\src-tauri\binaries\moka-sidecar-x86_64-pc-windows-msvc.exe)
 
 param(
     [switch]$SkipSidecar
@@ -71,30 +72,24 @@ Write-Host ""
 Write-Host "=== Step 1: Build Python sidecar ==="
 
 if (-not $SkipSidecar) {
-    Write-Host "Building moka-sidecar.exe via tools\build-moka-tss.ps1..."
-    & powershell -ExecutionPolicy Bypass -File "tools\build-moka-tss.ps1"
+    Write-Host "Building sidecar via tools\build-sidecar.ps1..."
+    & powershell -ExecutionPolicy Bypass -File "tools\build-sidecar.ps1"
     if ($LASTEXITCODE -ne 0) {
         Fail "Sidecar build failed (exit code $LASTEXITCODE)."
     }
-    
-    # Copy the built sidecar to Tauri's binaries folder
-    $SidecarSrc = ".\dist\moka\moka.exe"
-    $SidecarDstDir = ".\desktop\src-tauri\binaries"
-    $SidecarDst = Join-Path $SidecarDstDir "moka-sidecar.exe"
-    
-    if (-not (Test-Path $SidecarSrc)) {
-        Fail "Sidecar build succeeded but $SidecarSrc not found."
+
+    # build-sidecar.ps1 already copies the binary with the Tauri
+    # sidecar naming convention; just verify it landed.
+    $SidecarDst = ".\desktop\src-tauri\binaries\moka-sidecar-x86_64-pc-windows-msvc.exe"
+
+    if (-not (Test-Path $SidecarDst)) {
+        Fail "Sidecar build succeeded but $SidecarDst not found."
     }
-    
-    if (-not (Test-Path $SidecarDstDir)) {
-        New-Item -ItemType Directory -Path $SidecarDstDir | Out-Null
-    }
-    
-    Copy-Item -Path $SidecarSrc -Destination $SidecarDst -Force
-    Write-Host "✓ Sidecar copied to $SidecarDst"
+
+    Write-Host "✓ Sidecar ready at $SidecarDst"
 } else {
     Write-Host "Skipping sidecar build (--SkipSidecar)."
-    $SidecarDst = ".\desktop\src-tauri\binaries\moka-sidecar.exe"
+    $SidecarDst = ".\desktop\src-tauri\binaries\moka-sidecar-x86_64-pc-windows-msvc.exe"
     if (-not (Test-Path $SidecarDst)) {
         Fail "Sidecar binary not found at $SidecarDst. Build it first or run without -SkipSidecar."
     }
