@@ -338,15 +338,15 @@ export function RuleForm({
   return (
     <Card
       className={cn(
-        "w-full max-w-2xl bg-slate-950 border-slate-800 text-slate-50 shadow-xl",
+        "w-full max-w-2xl min-w-0 overflow-hidden bg-slate-950 border-slate-800 text-slate-50 shadow-xl",
         className
       )}
     >
       <CardHeader>
-        <CardTitle className="text-xl font-bold tracking-tight text-slate-50">
+        <CardTitle className="text-xl font-bold tracking-tight text-slate-50 truncate">
           {isEditing ? "Edit Rule" : "New Rule"}
         </CardTitle>
-        <CardDescription className="text-xs text-slate-400 mt-1">
+        <CardDescription className="text-xs text-slate-400 mt-1 truncate">
           {isEditing
             ? `Modify configuration for rule '${initial?.id}'`
             : "Define a condition and target mood"}

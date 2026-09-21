@@ -81,11 +81,11 @@ export function RulePreviewCard({ rules, moods }: RulePreviewCardProps) {
 
   if (validationError) {
     return (
-      <Card className="w-full max-w-2xl">
+      <Card className="w-full max-w-2xl min-w-0 overflow-hidden">
         <CardHeader>
-          <CardTitle className="text-slate-50">Rule Preview</CardTitle>
+          <CardTitle className="text-slate-50 truncate">Rule Preview</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 min-w-0 break-words">
           <div className="p-4 rounded-lg border border-red-600 bg-red-950/50 text-red-200">
             <p className="font-medium">Configuration Error</p>
             <p className="text-sm mt-1">{validationError}</p>
@@ -99,9 +99,9 @@ export function RulePreviewCard({ rules, moods }: RulePreviewCardProps) {
   }
 
   return (
-    <Card className="w-full max-w-2xl">
+    <Card className="w-full max-w-2xl min-w-0 overflow-hidden">
       <CardHeader>
-        <CardTitle className="text-slate-50">Rule Preview</CardTitle>
+        <CardTitle className="text-slate-50 truncate">Rule Preview</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Metrics Sliders */}
@@ -175,16 +175,16 @@ export function RulePreviewCard({ rules, moods }: RulePreviewCardProps) {
                     key={rule.id}
                     variant={isWinner ? "success" : isFired ? "secondary" : "outline"}
                     className={cn(
-                      "w-full justify-start gap-2 text-xs",
+                      "w-full justify-start gap-2 text-xs min-w-0 overflow-hidden",
                       isWinner && "font-medium"
                     )}
                   >
-                    <span className="font-mono">{rule.id}</span>
-                    <span className="text-slate-400">
+                    <span className="font-mono truncate max-w-[100px] shrink-0">{rule.id}</span>
+                    <span className="text-slate-400 truncate shrink-0">
                       {rule.metric} {rule.op} {rule.value}
                     </span>
-                    <span className="text-slate-500">→</span>
-                    <span className="capitalize">{rule.mood}</span>
+                    <span className="text-slate-500 shrink-0">→</span>
+                    <span className="capitalize truncate shrink-0">{rule.mood}</span>
                     {rule.priority && (
                       <span className="text-slate-400">p:{rule.priority}</span>
                     )}
