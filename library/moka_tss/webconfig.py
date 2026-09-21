@@ -271,13 +271,23 @@ def _validate_theme(data: dict) -> dict:
     if not isinstance(mascot_variant, str):
         raise ConfigValidationError(f"Setting 'theme.mascotVariant' must be a string, got {mascot_variant!r}.")
 
+    background_image = theme.get("backgroundImage")
+    if background_image is not None:
+        if not isinstance(background_image, str) or not background_image.startswith("data:image/"):
+            raise ConfigValidationError("Setting 'theme.backgroundImage' must be an image data URL.")
+        if len(background_image) > 400 * 1024:
+            raise ConfigValidationError("Setting 'theme.backgroundImage' must be <= 400 KB.")
+
     cards = theme.get("cards", [])
     if not isinstance(cards, list):
         raise ConfigValidationError(f"Setting 'theme.cards' must be a list, got {cards!r}.")
 
     normalized_cards = [_validate_theme_card(card, index) for index, card in enumerate(cards)]
 
-    return {"id": theme_id, "name": name, "cards": normalized_cards, "mascotVariant": mascot_variant}
+    normalized = {"id": theme_id, "name": name, "cards": normalized_cards, "mascotVariant": mascot_variant}
+    if background_image is not None:
+        normalized["backgroundImage"] = background_image
+    return normalized
 
 
 def validate_config(data: dict) -> Dict[str, object]:

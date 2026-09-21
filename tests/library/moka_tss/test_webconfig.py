@@ -810,6 +810,20 @@ class ThemeValidationTests(unittest.TestCase):
         self.assertEqual(normalized["theme"]["name"], "Por defecto")
         self.assertEqual(normalized["theme"]["cards"], [])
         self.assertEqual(normalized["theme"]["mascotVariant"], "default")
+        self.assertNotIn("backgroundImage", normalized["theme"])
+
+    def test_background_image_persists_when_valid(self):
+        theme = {"id": "t", "name": "T", "cards": [], "mascotVariant": "d",
+                 "backgroundImage": "data:image/webp;base64,AAA"}
+        normalized = webconfig.validate_config(self._base(theme=theme))
+        self.assertEqual(normalized["theme"]["backgroundImage"], theme["backgroundImage"])
+
+    def test_background_image_rejects_non_data_url_and_oversize(self):
+        for bad in ("http://x/y.png", "data:text/plain,hi", "x" * (400 * 1024 + 1)):
+            theme = {"id": "t", "name": "T", "cards": [], "mascotVariant": "d",
+                     "backgroundImage": bad}
+            with self.assertRaises(webconfig.ConfigValidationError):
+                webconfig.validate_config(self._base(theme=theme))
 
     def test_valid_theme_passes(self):
         theme = {
