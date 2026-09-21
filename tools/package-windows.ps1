@@ -147,7 +147,7 @@ Write-Host ""
 Write-Host "=== Package complete ==="
 $InstallerDir = ".\desktop\src-tauri\target\release\bundle"
 if (Test-Path $InstallerDir) {
-    Get-ChildItem -Path $InstallerDir -Recurse -Filter "*.msi", "*.exe" | ForEach-Object {
+    Get-ChildItem -Path $InstallerDir -Recurse -Include "*.msi", "*.exe" | ForEach-Object {
         Write-Host "Installer: $($_.FullName)"
     }
 } else {
