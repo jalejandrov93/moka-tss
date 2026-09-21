@@ -11,8 +11,6 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
-from library.moka_tss.app import MokaApp, SingleInstanceError
-
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     """Parse command line arguments for MOKA TSS."""
@@ -74,14 +72,38 @@ def _run_diagnostics(args: argparse.Namespace) -> None:
         except ImportError:
             return False
 
-    dummy_app = MokaApp(
-        serial_port=None,
-        tick_interval=args.tick,
-        brightness=args.brightness,
-        tray_enabled=False,
-        simulate=True,
-        simulate_output_path=Path("screencap.png"),
-    )
+    snapshot = {}
+    try:
+        from library.moka_tss.app import MokaApp
+
+        class MockObj:
+            value = None
+            available = False
+
+        class MockClient:
+            def get_state(self):
+                return MockObj()
+
+            def get_snapshot(self):
+                return None, None, False
+
+        dummy_app = MokaApp(
+            serial_port=None,
+            tick_interval=args.tick,
+            brightness=args.brightness,
+            tray_enabled=False,
+            simulate=True,
+            simulate_output_path=Path("screencap.png"),
+            read_sensors=lambda: {},
+            agenthub_client=MockClient(),
+            codexbar_client=MockClient(),
+            rule_engine=None,
+            sprites=None,
+            renderer=lambda *a, **k: None,
+        )
+        snapshot = dummy_app.status_snapshot()
+    except Exception as exc:
+        snapshot = {"error": str(exc)}
 
     report = {
         "app_name": "MOKA TSS",
@@ -91,7 +113,7 @@ def _run_diagnostics(args: argparse.Namespace) -> None:
             "brightness": args.brightness,
             "port": args.port,
         },
-        "status_snapshot": dummy_app.status_snapshot(),
+        "status_snapshot": snapshot,
         "config_files": {
             "config.yaml": Path("config.yaml").exists(),
             "res/moka_tss/rules.yaml": Path("res/moka_tss/rules.yaml").exists(),
@@ -137,6 +159,8 @@ def main(argv: Optional[List[str]] = None) -> None:
         except Exception as exc:
             logger.error("No se pudo abrir el puerto serie %s: %s", args.port, exc)
             sys.exit(1)
+
+    from library.moka_tss.app import MokaApp, SingleInstanceError
 
     app = MokaApp(
         serial_port=serial_port,

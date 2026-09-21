@@ -34,6 +34,11 @@ class TestDiagnosticsFlag(unittest.TestCase):
 
         self.assertIn("status_snapshot", data)
         status = data["status_snapshot"]
+        self.assertNotIn("error", status)
+        self.assertIn("mood", status)
+        self.assertIn("system", status)
+        self.assertIn("screen", status)
+        self.assertIn("transmission", status)
         self.assertIn("running", status)
         self.assertIn("tick", status)
 
