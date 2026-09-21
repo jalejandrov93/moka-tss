@@ -169,5 +169,43 @@ class SilhouetteDistinctionTests(unittest.TestCase):
         self._assert_distinct_silhouettes("durmiendo", "calma")
 
 
+class LoadVariantTests(unittest.TestCase):
+    """Tests for the MascotSprites.load_variant class method."""
+
+    def test_nonexistent_variant_returns_same_moods_as_base(self):
+        """A variant that doesn't exist as a directory falls back to base load()."""
+        sprites = MascotSprites.load_variant("no-such-variant")
+        self.assertIsInstance(sprites, MascotSprites)
+        # Should have the same MOODS as the base class
+        self.assertEqual(sprites.MOODS, MascotSprites.MOODS)
+
+    def test_invalid_name_with_dotdot_raises(self):
+        """Name containing '..' raises FileNotFoundError."""
+        with self.assertRaises(FileNotFoundError):
+            MascotSprites.load_variant("..")
+
+    def test_invalid_name_with_slash_raises(self):
+        """Name containing '/' raises FileNotFoundError."""
+        with self.assertRaises(FileNotFoundError):
+            MascotSprites.load_variant("a/b")
+
+    def test_invalid_name_with_uppercase_raises(self):
+        """Name containing uppercase letters raises FileNotFoundError."""
+        with self.assertRaises(FileNotFoundError):
+            MascotSprites.load_variant("A B")
+
+    def test_invalid_name_empty_raises(self):
+        """Empty name raises FileNotFoundError."""
+        with self.assertRaises(FileNotFoundError):
+            MascotSprites.load_variant("")
+
+    def test_invalid_name_with_special_chars_raises(self):
+        """Name with characters outside [a-z0-9_-] raises FileNotFoundError."""
+        with self.assertRaises(FileNotFoundError):
+            MascotSprites.load_variant("variant@name")
+        with self.assertRaises(FileNotFoundError):
+            MascotSprites.load_variant("variant.name")
+
+
 if __name__ == "__main__":
     unittest.main()
