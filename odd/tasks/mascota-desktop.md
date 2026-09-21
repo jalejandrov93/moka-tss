@@ -76,3 +76,5 @@ Separar `MokaApp` en Core testeable + Host lifecycle + UI futura, dejando listo 
 - [ ] MD-6.2 RuleList + RuleForm (job 27231568, agy, md-62-ruleui, sin cablear).
 - [ ] MD-6.3 RulePreviewCard (job 9442f533, opencode, md-63-preview, sin cablear).
 - [ ] MD-8.2 Watchdog en step() vía Jules (job 0f886255, PR remoto).
+- [x] MD-6.3 RulePreviewCard (agy, adoptado tras reinicio). Merge previo. Verificado tsc+build.
+- [x] MD-6.2 RuleList + RuleForm (job f8080159 relaunch, agy). Merge tras tsc reproducido. Sin cablear en main.ts (siguiente: MD-6.4).
