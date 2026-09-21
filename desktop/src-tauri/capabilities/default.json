@@ -6,7 +6,6 @@
   "permissions": [
     "core:default",
     "shell:default",
-    "autostart:default",
-    "single-instance:default"
+    "autostart:default"
   ]
 }
