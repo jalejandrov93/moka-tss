@@ -3,7 +3,19 @@ import React from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { listen } from "@tauri-apps/api/event";
 import { App } from "./App";
-import type { StatusSnapshot, RulesPayload, Rule, ServiceStatus, WslStatus, AppConfig, ThemeConfig } from "./types";
+import {
+  type StatusSnapshot,
+  type RulesPayload,
+  type Rule,
+  type ServiceStatus,
+  type WslStatus,
+  type AppConfig,
+  type ThemeConfig,
+  type MascotVariant,
+  MASCOT_OPTIONS,
+  isMascotVariant,
+} from "./types";
+export { MASCOT_OPTIONS, isMascotVariant, type MascotVariant };
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,6 +57,8 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 export let sliderBrightness = 100;
 export let brightnessStatus: "idle" | "applied" | "error" = "idle";
 export let brightnessStatusText = "";
+export let mascotStatus: "idle" | "applied" | "error" = "idle";
+export let mascotStatusText = "";
 export let editingRule: RuleConfig | null = null;
 export let originalRuleId: string | null = null;
 export let rulesSaveError: string | null = null;
@@ -1224,14 +1238,36 @@ export async function handleMascotVariantChange(
   e: React.ChangeEvent<HTMLSelectElement>
 ): Promise<void> {
   const nextVariant = e.target.value;
+  const validVariant: MascotVariant = isMascotVariant(nextVariant) ? nextVariant : "default";
   const nextTheme: ThemeConfig = {
     ...currentTheme,
-    mascotVariant: nextVariant,
+    mascotVariant: validVariant,
   };
   currentTheme = nextTheme;
+  mascotStatus = "idle";
+  mascotStatusText = "";
   renderApp();
-  await saveTheme(nextTheme);
-  renderApp();
+
+  try {
+    const success = await saveTheme(nextTheme);
+    if (currentTheme.mascotVariant === validVariant) {
+      if (success) {
+        mascotStatus = "applied";
+        mascotStatusText = "Aplicado";
+      } else {
+        mascotStatus = "error";
+        mascotStatusText = "Error";
+      }
+      renderApp();
+    }
+  } catch (err) {
+    console.error("Failed to update mascot variant:", err);
+    if (currentTheme.mascotVariant === validVariant) {
+      mascotStatus = "error";
+      mascotStatusText = "Error";
+      renderApp();
+    }
+  }
 }
 
 export async function handlePickBackgroundImage(): Promise<void> {
@@ -1307,10 +1343,10 @@ export async function handleRemoveBackground(): Promise<void> {
 
 export function renderTemaCard(): React.ReactElement {
   const allCards = getAllCardIds();
-  const mascotOptions = Array.from(
-    new Set(["default", "happy", "sad", currentTheme.mascotVariant || "default"])
-  );
   const activeThumbnail = pendingBackgroundDataUrl || currentTheme.backgroundImage;
+  const currentVariant = isMascotVariant(currentTheme.mascotVariant)
+    ? currentTheme.mascotVariant
+    : "default";
 
   return React.createElement(
     Card,
@@ -1370,30 +1406,44 @@ export function renderTemaCard(): React.ReactElement {
           "div",
           { className: "space-y-2 min-w-0" },
           React.createElement(
-            "label",
-            {
-              htmlFor: "mascot-variant-select",
-              className: "text-xs font-semibold text-slate-400 uppercase tracking-wider block truncate",
-            },
-            "Variante de Mascota"
+            "div",
+            { className: "flex items-center justify-between text-xs font-mono gap-2 min-w-0" },
+            React.createElement(
+              "label",
+              {
+                htmlFor: "mascot-variant-select",
+                className: "font-semibold text-slate-400 uppercase tracking-wider truncate",
+              },
+              "Variante de Mascota"
+            ),
+            mascotStatusText
+              ? React.createElement(
+                  Badge,
+                  {
+                    variant: mascotStatus === "applied" ? "success" : "destructive",
+                    className: "text-[10px] px-1.5 py-0 font-mono shrink-0",
+                  },
+                  mascotStatusText
+                )
+              : null
           ),
           React.createElement(
             "select",
             {
               id: "mascot-variant-select",
-              value: currentTheme.mascotVariant || "default",
+              value: currentVariant,
               onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void handleMascotVariantChange(e),
               className:
                 "h-9 w-full rounded-md bg-slate-900 border border-slate-800 text-slate-200 text-xs px-3 py-1 font-mono focus:outline-none focus:ring-1 focus:ring-slate-400 cursor-pointer",
             },
-            mascotOptions.map((opt) =>
-              React.createElement("option", { key: opt, value: opt }, opt)
+            MASCOT_OPTIONS.map((opt) =>
+              React.createElement("option", { key: opt.value, value: opt.value }, opt.label)
             )
           ),
           React.createElement(
             "p",
             { className: "text-[11px] text-slate-500 font-mono" },
-            `Variante activa: ${currentTheme.mascotVariant || "default"}`
+            `Variante activa: ${currentVariant}`
           )
         ),
         React.createElement(
@@ -1696,8 +1746,12 @@ export async function fetchTheme(): Promise<void> {
     }
     const data = (await response.json()) as ThemeConfig;
     if (data && typeof data.id === "string" && Array.isArray(data.cards)) {
+      const mascotVariant = isMascotVariant(data.mascotVariant)
+        ? data.mascotVariant
+        : "default";
       currentTheme = {
         ...data,
+        mascotVariant,
         backgroundImage:
           data.backgroundImage ?? loadSavedBackground() ?? currentTheme?.backgroundImage,
       };
@@ -1735,9 +1789,15 @@ export async function saveTheme(theme: ThemeConfig): Promise<boolean> {
     }
     const saved = (await response.json()) as ThemeConfig;
     if (saved && typeof saved.id === "string") {
+      const mascotVariant = isMascotVariant(saved.mascotVariant)
+        ? saved.mascotVariant
+        : isMascotVariant(theme.mascotVariant)
+          ? theme.mascotVariant
+          : "default";
       currentTheme = {
         ...theme,
         ...saved,
+        mascotVariant,
         backgroundImage:
           theme.backgroundImage ?? saved.backgroundImage ?? loadSavedBackground(),
       };
