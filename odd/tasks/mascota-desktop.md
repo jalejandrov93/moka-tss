@@ -78,3 +78,4 @@ Separar `MokaApp` en Core testeable + Host lifecycle + UI futura, dejando listo 
 - [ ] MD-8.2 Watchdog en step() vía Jules (job 0f886255, PR remoto).
 - [x] MD-6.3 RulePreviewCard (agy, adoptado tras reinicio). Merge previo. Verificado tsc+build.
 - [x] MD-6.2 RuleList + RuleForm (job f8080159 relaunch, agy). Merge tras tsc reproducido. Sin cablear en main.ts (siguiente: MD-6.4).
+- [x] MD-8.2 Watchdog en step() (Jules, rescatado por pegado — sin PR). Commit `c872d69` mergeado. Verificado por padre: 4 tests recovery OK, suite solo 8 Rev C, lint CI 0 tras refactorizar 2 C901 de Jules (_show_on_screen, _recover_renderer/_recover_screen).
