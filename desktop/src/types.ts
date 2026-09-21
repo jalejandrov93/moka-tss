@@ -94,4 +94,5 @@ export interface ThemeConfig {
   name: string;
   cards: ThemeCard[];
   mascotVariant: string;
+  backgroundImage?: string | null;
 }

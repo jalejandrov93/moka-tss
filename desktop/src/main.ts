@@ -18,6 +18,7 @@ import {
   updateThemeCardVisibility,
   type CardId,
 } from "@/lib/dashboard";
+import { pickImageFile, fileToThemeBackground } from "@/lib/image";
 
 const DEFAULT_PORT = 8765;
 let serverPort = DEFAULT_PORT;
@@ -47,7 +48,34 @@ export let editingRule: RuleConfig | null = null;
 export let originalRuleId: string | null = null;
 export let rulesSaveError: string | null = null;
 export let visibleCards: CardId[] = loadVisible();
-export let currentTheme: ThemeConfig = getDefaultTheme();
+export let pendingBackgroundDataUrl: string | null = null;
+export let backgroundError: string | null = null;
+const BG_STORAGE_KEY = "moka.theme.backgroundImage";
+
+export function loadSavedBackground(): string | undefined {
+  try {
+    return localStorage.getItem(BG_STORAGE_KEY) || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function saveStoredBackground(bg: string | null | undefined): void {
+  try {
+    if (bg) {
+      localStorage.setItem(BG_STORAGE_KEY, bg);
+    } else {
+      localStorage.removeItem(BG_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+export let currentTheme: ThemeConfig = {
+  ...getDefaultTheme(),
+  backgroundImage: loadSavedBackground(),
+};
 let themeDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 function getRoot(): Root | null {
@@ -1147,59 +1175,354 @@ const cardRenderers: Record<CardId, () => React.ReactElement> = {
   reglas: renderReglasCard,
 };
 
-function renderCustomizeBar(): React.ReactElement {
+export function handleToggleCardVisibility(cardId: CardId, checked: boolean): void {
+  if (checked) {
+    if (!visibleCards.includes(cardId)) {
+      visibleCards = [...visibleCards, cardId];
+    }
+  } else {
+    visibleCards = visibleCards.filter((id) => id !== cardId);
+  }
+  saveVisible(visibleCards);
+
+  currentTheme = updateThemeCardVisibility(currentTheme, cardId, checked);
+  debouncedSaveTheme(currentTheme);
+
+  renderApp();
+}
+
+export async function handleMascotVariantChange(
+  e: React.ChangeEvent<HTMLSelectElement>
+): Promise<void> {
+  const nextVariant = e.target.value;
+  const nextTheme: ThemeConfig = {
+    ...currentTheme,
+    mascotVariant: nextVariant,
+  };
+  currentTheme = nextTheme;
+  renderApp();
+  await saveTheme(nextTheme);
+  renderApp();
+}
+
+export async function handlePickBackgroundImage(): Promise<void> {
+  try {
+    backgroundError = null;
+    const file = await pickImageFile();
+    if (!file) return;
+    const dataUrl = await fileToThemeBackground(file);
+    pendingBackgroundDataUrl = dataUrl;
+    backgroundError = null;
+    renderApp();
+  } catch (err) {
+    backgroundError = err instanceof Error ? err.message : String(err);
+    renderApp();
+  }
+}
+
+export async function handleFileInputChange(
+  e: React.ChangeEvent<HTMLInputElement>
+): Promise<void> {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  try {
+    backgroundError = null;
+    const maxSize = 2 * 1024 * 1024; // 2MB
+    if (file.size > maxSize) {
+      throw new Error(`File size ${(file.size / 1024 / 1024).toFixed(2)}MB exceeds 2MB limit`);
+    }
+    const dataUrl = await fileToThemeBackground(file);
+    pendingBackgroundDataUrl = dataUrl;
+    backgroundError = null;
+    renderApp();
+  } catch (err) {
+    backgroundError = err instanceof Error ? err.message : String(err);
+    renderApp();
+  } finally {
+    e.target.value = "";
+  }
+}
+
+export async function handleConfirmBackground(): Promise<void> {
+  if (!pendingBackgroundDataUrl) return;
+  const nextTheme: ThemeConfig = {
+    ...currentTheme,
+    backgroundImage: pendingBackgroundDataUrl,
+  };
+  currentTheme = nextTheme;
+  pendingBackgroundDataUrl = null;
+  backgroundError = null;
+  renderApp();
+  await saveTheme(nextTheme);
+  renderApp();
+}
+
+export function handleCancelPendingBackground(): void {
+  pendingBackgroundDataUrl = null;
+  backgroundError = null;
+  renderApp();
+}
+
+export async function handleRemoveBackground(): Promise<void> {
+  const nextTheme: ThemeConfig = {
+    ...currentTheme,
+    backgroundImage: null,
+  };
+  currentTheme = nextTheme;
+  pendingBackgroundDataUrl = null;
+  backgroundError = null;
+  renderApp();
+  await saveTheme(nextTheme);
+  renderApp();
+}
+
+export function renderTemaCard(): React.ReactElement {
   const allCards = getAllCardIds();
+  const mascotOptions = Array.from(
+    new Set(["default", "happy", "sad", currentTheme.mascotVariant || "default"])
+  );
+  const activeThumbnail = pendingBackgroundDataUrl || currentTheme.backgroundImage;
 
   return React.createElement(
-    "div",
+    Card,
     {
       className:
-        "w-full max-w-[96rem] p-4 bg-slate-900/60 border border-slate-800 rounded-xl shadow-lg min-w-0 overflow-hidden",
+        "w-full max-w-[96rem] bg-slate-950 text-slate-50 border-slate-800 shadow-xl min-w-0 overflow-hidden",
     },
     React.createElement(
-      "div",
-      { className: "flex flex-wrap items-center gap-3 min-w-0" },
+      CardHeader,
+      {
+        className:
+          "flex flex-row items-center justify-between pb-4 border-b border-slate-800 gap-4 min-w-0",
+      },
       React.createElement(
-        "span",
-        { className: "text-sm font-semibold text-slate-300 shrink-0" },
-        "Personalizar:"
-      ),
-      allCards.map((cardId) =>
+        "div",
+        { className: "min-w-0" },
         React.createElement(
-          "label",
-          {
-            key: cardId,
-            className:
-              "flex items-center gap-2 text-sm text-slate-300 cursor-pointer hover:text-slate-100 transition-colors shrink-0",
-          },
-          React.createElement("input", {
-            type: "checkbox",
-            checked: visibleCards.includes(cardId),
-            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-              const checked = e.target.checked;
-              if (checked) {
-                if (!visibleCards.includes(cardId)) {
-                  visibleCards = [...visibleCards, cardId];
-                }
-              } else {
-                visibleCards = visibleCards.filter((id) => id !== cardId);
-              }
-              saveVisible(visibleCards);
-
-              // Update theme card visibility and persist via POST /api/theme (debounced, best-effort)
-              currentTheme = updateThemeCardVisibility(currentTheme, cardId, checked);
-              debouncedSaveTheme(currentTheme);
-
-              renderApp();
+          CardTitle,
+          { className: "text-xl font-bold tracking-tight text-slate-50 truncate" },
+          "Tema"
+        ),
+        React.createElement(
+          "p",
+          { className: "text-xs text-slate-400 mt-1 truncate" },
+          "Personalización visual, fondo y visibilidad de tarjetas"
+        )
+      ),
+      React.createElement(
+        "div",
+        { className: "flex items-center gap-2 shrink-0" },
+        React.createElement("span", { className: "text-xs text-slate-400 font-medium" }, "Tema:"),
+        React.createElement(
+          Badge,
+          { variant: "default", className: "text-xs font-semibold px-2.5 py-0.5" },
+          currentTheme.name || currentTheme.id || "Por defecto"
+        )
+      )
+    ),
+    React.createElement(
+      CardContent,
+      { className: "pt-6 space-y-6 min-w-0" },
+      backgroundError
+        ? React.createElement(
+            "div",
+            {
+              className:
+                "p-3 rounded-lg border border-red-600/80 bg-red-950/60 text-red-200 text-xs font-mono space-y-1 shadow-sm break-words",
             },
-            className:
-              "w-4 h-4 rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500 focus:ring-2",
-          }),
-          getCardLabel(cardId)
+            React.createElement("p", { className: "font-bold text-red-100 font-sans" }, "Error de fondo:"),
+            React.createElement("p", null, backgroundError)
+          )
+        : null,
+      React.createElement(
+        "div",
+        { className: "grid grid-cols-1 md:grid-cols-2 gap-6 items-start min-w-0" },
+        React.createElement(
+          "div",
+          { className: "space-y-2 min-w-0" },
+          React.createElement(
+            "label",
+            {
+              htmlFor: "mascot-variant-select",
+              className: "text-xs font-semibold text-slate-400 uppercase tracking-wider block truncate",
+            },
+            "Variante de Mascota"
+          ),
+          React.createElement(
+            "select",
+            {
+              id: "mascot-variant-select",
+              value: currentTheme.mascotVariant || "default",
+              onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void handleMascotVariantChange(e),
+              className:
+                "h-9 w-full rounded-md bg-slate-900 border border-slate-800 text-slate-200 text-xs px-3 py-1 font-mono focus:outline-none focus:ring-1 focus:ring-slate-400 cursor-pointer",
+            },
+            mascotOptions.map((opt) =>
+              React.createElement("option", { key: opt, value: opt }, opt)
+            )
+          ),
+          React.createElement(
+            "p",
+            { className: "text-[11px] text-slate-500 font-mono" },
+            `Variante activa: ${currentTheme.mascotVariant || "default"}`
+          )
+        ),
+        React.createElement(
+          "div",
+          { className: "space-y-2 min-w-0" },
+          React.createElement(
+            "label",
+            {
+              htmlFor: "theme-bg-file-input",
+              className: "text-xs font-semibold text-slate-400 uppercase tracking-wider block truncate",
+            },
+            "Fondo de Pantalla"
+          ),
+          React.createElement(
+            "div",
+            { className: "flex flex-wrap items-center gap-4 min-w-0" },
+            activeThumbnail
+              ? React.createElement(
+                  "div",
+                  {
+                    className:
+                      "flex items-center gap-3 p-2 bg-slate-900/60 rounded-lg border border-slate-800 shrink-0 min-w-0",
+                  },
+                  React.createElement("img", {
+                    src: activeThumbnail,
+                    alt: "Miniatura fondo",
+                    className: "w-20 h-12 object-cover rounded border border-slate-700 shadow-inner shrink-0",
+                  }),
+                  React.createElement(
+                    "div",
+                    { className: "flex flex-col gap-1.5 min-w-0" },
+                    React.createElement(
+                      "span",
+                      { className: "text-xs font-mono text-slate-300 truncate" },
+                      pendingBackgroundDataUrl ? "Vista previa (sin confirmar)" : "Fondo activo"
+                    ),
+                    React.createElement(
+                      "div",
+                      { className: "flex items-center gap-1.5 flex-wrap" },
+                      pendingBackgroundDataUrl
+                        ? [
+                            React.createElement(
+                              Button,
+                              {
+                                key: "confirm-bg",
+                                size: "sm",
+                                onClick: () => void handleConfirmBackground(),
+                                className:
+                                  "h-7 text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 shrink-0",
+                              },
+                              "Confirmar"
+                            ),
+                            React.createElement(
+                              Button,
+                              {
+                                key: "cancel-bg",
+                                size: "sm",
+                                variant: "outline",
+                                onClick: handleCancelPendingBackground,
+                                className: "h-7 text-xs px-2.5 shrink-0",
+                              },
+                              "Cancelar"
+                            ),
+                          ]
+                        : [
+                            React.createElement(
+                              Button,
+                              {
+                                key: "change-bg",
+                                size: "sm",
+                                variant: "outline",
+                                onClick: () => void handlePickBackgroundImage(),
+                                className: "h-7 text-xs px-2.5 shrink-0",
+                              },
+                              "Cambiar"
+                            ),
+                            React.createElement(
+                              Button,
+                              {
+                                key: "remove-bg",
+                                size: "sm",
+                                variant: "destructive",
+                                onClick: () => void handleRemoveBackground(),
+                                className: "h-7 text-xs px-2.5 shrink-0",
+                              },
+                              "Quitar"
+                            ),
+                          ]
+                    )
+                  )
+                )
+              : React.createElement(
+                  "div",
+                  {
+                    className:
+                      "w-20 h-12 rounded border border-dashed border-slate-800 bg-slate-900/40 flex items-center justify-center text-[10px] text-slate-500 font-mono shrink-0",
+                  },
+                  "Sin fondo"
+                ),
+            React.createElement(
+              "div",
+              { className: "flex flex-col gap-2 min-w-0" },
+              React.createElement("input", {
+                id: "theme-bg-file-input",
+                type: "file",
+                accept: "image/png,image/jpeg,image/webp",
+                onChange: (e: React.ChangeEvent<HTMLInputElement>) => void handleFileInputChange(e),
+                className:
+                  "text-xs text-slate-400 file:mr-2 file:py-1 file:px-2.5 file:rounded file:border-0 file:text-xs file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700 cursor-pointer",
+              }),
+              React.createElement(
+                "span",
+                { className: "text-[11px] text-slate-500" },
+                "PNG, JPEG o WebP (máx 2MB, WebP ≤400KB)"
+              )
+            )
+          )
+        )
+      ),
+      React.createElement(
+        "div",
+        { className: "space-y-2 pt-4 border-t border-slate-800 min-w-0" },
+        React.createElement(
+          "div",
+          { className: "text-xs font-semibold text-slate-400 uppercase tracking-wider truncate" },
+          "Visibilidad de tarjetas"
+        ),
+        React.createElement(
+          "div",
+          { className: "flex flex-wrap items-center gap-3 min-w-0" },
+          allCards.map((cardId) =>
+            React.createElement(
+              "label",
+              {
+                key: cardId,
+                className:
+                  "flex items-center gap-2 text-sm text-slate-300 cursor-pointer hover:text-slate-100 transition-colors shrink-0",
+              },
+              React.createElement("input", {
+                type: "checkbox",
+                checked: visibleCards.includes(cardId),
+                onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                  handleToggleCardVisibility(cardId, e.target.checked);
+                },
+                className:
+                  "w-4 h-4 rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500 focus:ring-2",
+              }),
+              getCardLabel(cardId)
+            )
+          )
         )
       )
     )
   );
+}
+
+export function renderCustomizeBar(): React.ReactElement {
+  return renderTemaCard();
 }
 
 function renderApp(): void {
@@ -1213,11 +1536,43 @@ function renderApp(): void {
     .filter(Boolean)
     .map((fn) => fn());
 
+  const hasBackground = Boolean(
+    currentTheme.backgroundImage && currentTheme.backgroundImage.trim() !== ""
+  );
+  const containerStyle: React.CSSProperties = hasBackground
+    ? {
+        backgroundImage: `linear-gradient(rgba(2, 6, 23, 0.85), rgba(2, 6, 23, 0.85)), url("${currentTheme.backgroundImage}")`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+        backgroundRepeat: "no-repeat",
+      }
+    : {};
+
+  if (typeof document !== "undefined" && document.body) {
+    if (hasBackground) {
+      document.body.style.backgroundImage = `linear-gradient(rgba(2, 6, 23, 0.85), rgba(2, 6, 23, 0.85)), url("${currentTheme.backgroundImage}")`;
+      document.body.style.backgroundSize = "cover";
+      document.body.style.backgroundPosition = "center";
+      document.body.style.backgroundAttachment = "fixed";
+      document.body.style.backgroundRepeat = "no-repeat";
+    } else {
+      document.body.style.backgroundImage = "";
+      document.body.style.backgroundSize = "";
+      document.body.style.backgroundPosition = "";
+      document.body.style.backgroundAttachment = "";
+      document.body.style.backgroundRepeat = "";
+    }
+  }
+
   currentRoot.render(
     React.createElement(
       "div",
-      { className: "min-h-screen bg-slate-950 text-slate-50 p-6 flex flex-col items-center gap-6" },
-      renderCustomizeBar(),
+      {
+        className: "min-h-screen bg-slate-950 text-slate-50 p-6 flex flex-col items-center gap-6",
+        style: containerStyle,
+      },
+      renderTemaCard(),
       React.createElement(
         "div",
         { className: "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 w-full max-w-[96rem]" },
@@ -1363,19 +1718,30 @@ export async function fetchTheme(): Promise<void> {
     }
     const data = (await response.json()) as ThemeConfig;
     if (data && typeof data.id === "string" && Array.isArray(data.cards)) {
-      currentTheme = data;
+      currentTheme = {
+        ...data,
+        backgroundImage:
+          data.backgroundImage ?? loadSavedBackground() ?? currentTheme?.backgroundImage,
+      };
     } else {
-      currentTheme = getDefaultTheme();
+      currentTheme = {
+        ...getDefaultTheme(),
+        backgroundImage: loadSavedBackground(),
+      };
     }
   } catch (err) {
     console.warn("Error fetching theme, using default:", err);
-    currentTheme = getDefaultTheme();
+    currentTheme = {
+      ...getDefaultTheme(),
+      backgroundImage: loadSavedBackground(),
+    };
   }
   visibleCards = getOrderedVisibleCards(currentTheme);
   saveVisible(visibleCards);
 }
 
 export async function saveTheme(theme: ThemeConfig): Promise<boolean> {
+  saveStoredBackground(theme.backgroundImage);
   try {
     const response = await fetch(`${baseUrl()}/api/theme`, {
       method: "POST",
@@ -1391,7 +1757,12 @@ export async function saveTheme(theme: ThemeConfig): Promise<boolean> {
     }
     const saved = (await response.json()) as ThemeConfig;
     if (saved && typeof saved.id === "string") {
-      currentTheme = saved;
+      currentTheme = {
+        ...theme,
+        ...saved,
+        backgroundImage:
+          theme.backgroundImage ?? saved.backgroundImage ?? loadSavedBackground(),
+      };
     }
     return true;
   } catch (err) {
