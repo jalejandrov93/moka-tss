@@ -266,6 +266,126 @@ function renderMascotaCard(): React.ReactElement {
   );
 }
 
+function renderMascotaDetailCard(): React.ReactElement {
+  if (statusError) {
+    return React.createElement(
+      Card,
+      { className: "w-full max-w-md bg-slate-950 text-slate-50 border-red-900 shadow-xl" },
+      React.createElement(
+        CardHeader,
+        null,
+        React.createElement(
+          CardTitle,
+          { className: "text-xl font-bold tracking-tight text-red-400" },
+          "Mascota Detalle"
+        )
+      ),
+      React.createElement(
+        CardContent,
+        { className: "space-y-2 font-mono text-sm text-red-400" },
+        React.createElement(
+          "p",
+          null,
+          `Error fetching status: ${statusError instanceof Error ? statusError.message : String(statusError)}`
+        )
+      )
+    );
+  }
+
+  if (!currentStatus) {
+    return React.createElement(
+      Card,
+      { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+      React.createElement(
+        CardHeader,
+        null,
+        React.createElement(
+          CardTitle,
+          { className: "text-xl font-bold tracking-tight text-slate-50" },
+          "Mascota Detalle"
+        )
+      ),
+      React.createElement(
+        CardContent,
+        { className: "space-y-4 font-mono text-sm text-slate-400" },
+        "Cargando estado..."
+      )
+    );
+  }
+
+  const mood = currentStatus.mood ?? "null";
+  const rule = currentStatus.rule;
+  const winningRuleId = rule?.winning_rule_id ?? "default";
+  const fired = rule?.fired ?? [];
+
+  return React.createElement(
+    Card,
+    { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+    React.createElement(
+      CardHeader,
+      null,
+      React.createElement(
+        CardTitle,
+        { className: "text-xl font-bold tracking-tight text-slate-50" },
+        "Mascota Detalle"
+      )
+    ),
+    React.createElement(
+      CardContent,
+      { className: "space-y-4" },
+      React.createElement(
+        "div",
+        { className: "text-center py-4" },
+        React.createElement(
+          "span",
+          { className: "text-5xl font-bold uppercase tracking-wider text-slate-100" },
+          String(mood).toUpperCase()
+        )
+      ),
+      React.createElement(
+        "div",
+        { className: "pt-3 border-t border-slate-800" },
+        React.createElement(
+          "div",
+          { className: "text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2" },
+          "Triggered by"
+        ),
+        React.createElement(
+          Badge,
+          { variant: "default", className: "text-base font-medium px-3 py-1.5" },
+          winningRuleId
+        )
+      ),
+      React.createElement(
+        "div",
+        { className: "pt-3 border-t border-slate-800" },
+        React.createElement(
+          "div",
+          { className: "text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2" },
+          `Reglas activas (${fired.length})`
+        ),
+        React.createElement(
+          "div",
+          { className: "flex flex-wrap gap-1.5" },
+          fired.length === 0
+            ? React.createElement(
+                "span",
+                { className: "text-slate-500 italic text-xs" },
+                "sin reglas activas"
+              )
+            : fired.map((id: string) =>
+                React.createElement(
+                  Badge,
+                  { key: id, variant: "secondary", className: "text-xs px-2 py-0.5" },
+                  id
+                )
+              )
+        )
+      )
+    )
+  );
+}
+
 function renderMetricBar(label: string, value: number | null | undefined): React.ReactElement {
   const isAvailable = value !== null && value !== undefined && !Number.isNaN(value);
   const displayVal = isAvailable ? `${Number(value.toFixed(1))}%` : "n/d";
@@ -742,9 +862,10 @@ function renderApp(): void {
       { className: "min-h-screen bg-slate-950 text-slate-50 p-6 flex justify-center items-start" },
       React.createElement(
         "div",
-        { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 w-full max-w-[96rem]" },
+        { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 w-full max-w-[96rem]" },
         renderServiciosCard(),
         renderMascotaCard(),
+        renderMascotaDetailCard(),
         renderSistemaCard(),
         renderWslCard(),
         renderTransmisionCard()
