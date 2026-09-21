@@ -552,5 +552,73 @@ class RulesConfigErrorImportTests(unittest.TestCase):
         self.assertTrue(issubclass(RulesConfigError, Exception))
 
 
+class CorsTests(WebConfigServerTestCase):
+    """CORS headers and OPTIONS preflight tests."""
+
+    def test_options_preflight_returns_204_with_cors_headers(self):
+        conn = self._connection()
+        try:
+            conn.request("OPTIONS", "/api/config", headers={"Host": f"127.0.0.1:{self.server.port}"})
+            response = conn.getresponse()
+            response.read()
+            self.assertEqual(response.status, 204)
+            self.assertEqual(response.getheader("Access-Control-Allow-Origin"), "*")
+            self.assertEqual(response.getheader("Access-Control-Allow-Methods"), "GET, POST, OPTIONS")
+            self.assertEqual(response.getheader("Access-Control-Allow-Headers"), "Content-Type, Origin")
+        finally:
+            conn.close()
+
+    def test_options_with_invalid_host_returns_403(self):
+        conn = self._connection()
+        try:
+            conn.request("OPTIONS", "/api/config", headers={"Host": "evil.example.com"})
+            response = conn.getresponse()
+            body = response.read()
+            self.assertEqual(response.status, 403)
+            data = json.loads(body)
+            self.assertIn("error", data)
+        finally:
+            conn.close()
+
+    def test_get_api_status_includes_cors_header(self):
+        status, body = self._get("/api/status")
+        self.assertEqual(status, 200)
+        # The response should have the CORS header
+        # Note: _get uses http.client which doesn't expose headers easily
+        # We'll verify via a direct connection
+        conn = self._connection()
+        try:
+            conn.request("GET", "/api/status", headers={"Host": f"127.0.0.1:{self.server.port}"})
+            response = conn.getresponse()
+            self.assertEqual(response.getheader("Access-Control-Allow-Origin"), "*")
+        finally:
+            conn.close()
+
+    def test_get_static_asset_includes_cors_header(self):
+        conn = self._connection()
+        try:
+            conn.request("GET", "/style.css", headers={"Host": f"127.0.0.1:{self.server.port}"})
+            response = conn.getresponse()
+            self.assertEqual(response.getheader("Access-Control-Allow-Origin"), "*")
+        finally:
+            conn.close()
+
+    def test_post_error_response_includes_cors_header(self):
+        # POST with invalid content-type should return 415 with CORS header
+        conn = self._connection()
+        try:
+            headers = {
+                "Content-Type": "text/plain",
+                "Origin": f"http://127.0.0.1:{self.server.port}",
+                "Host": f"127.0.0.1:{self.server.port}",
+            }
+            conn.request("POST", "/api/config", body=b"{}", headers=headers)
+            response = conn.getresponse()
+            self.assertEqual(response.status, 415)
+            self.assertEqual(response.getheader("Access-Control-Allow-Origin"), "*")
+        finally:
+            conn.close()
+
+
 if __name__ == "__main__":
     unittest.main()

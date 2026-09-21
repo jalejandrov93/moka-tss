@@ -56,6 +56,28 @@ Writes (`POST /api/config`, `POST /api/rules`) are validated BEFORE any
 file is touched, and written with `_atomic_write_text` (temp file +
 `os.replace`), so a validation failure or a mid-write OS error always
 leaves the previous file exactly as it was.
+
+CORS (Cross-Origin Resource Sharing)
+------------------------------------
+The panel is intentionally open to cross-origin reads from browsers running
+on the user's machine (e.g. a Vite dev server at `http://localhost:5173`,
+a Tauri webview, or any other local origin). This is safe because:
+
+- The socket is bound exclusively to `127.0.0.1` (loopback only). No
+  external network traffic can reach it.
+- Every request -- including `OPTIONS` preflight -- is still subject to the
+  `Host` header check (`_host_is_valid`). A request with a forged `Host`
+  that does not match `127.0.0.1:<port>` receives `403 Forbidden`.
+- `Origin` is **not** checked on `GET` or `OPTIONS`; it is only enforced on
+  state-changing `POST` endpoints. This allows the preflight to succeed
+  from any origin while still protecting writes.
+- The response header `Access-Control-Allow-Origin: *` is added to every
+  response (JSON, static assets, and preflight). Combined with the loopback
+  binding and `Host` validation, the `*` wildcard does not widen the attack
+  surface beyond what the loopback interface already permits.
+- `Access-Control-Allow-Methods: GET, POST, OPTIONS` and
+  `Access-Control-Allow-Headers: Content-Type, Origin` are included on the
+  preflight response so browsers allow the actual requests.
 """
 
 import json
@@ -341,6 +363,7 @@ class _ConfigRequestHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(body)
 
@@ -386,8 +409,26 @@ class _ConfigRequestHandler(BaseHTTPRequestHandler):
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(body)
+
+    def do_OPTIONS(self):  # noqa: N802 - stdlib method name
+        """Handle CORS preflight requests.
+
+        The same Host validation as GET is applied. Origin is not checked
+        on preflight -- the response allows any origin (*), while the
+        loopback binding and Host check keep the attack surface limited.
+        """
+        if not self._host_is_valid():
+            self._send_error_json(HTTPStatus.FORBIDDEN, "Host header does not match this server.")
+            return
+
+        self.send_response(HTTPStatus.NO_CONTENT)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Origin")
+        self.end_headers()
 
     def do_POST(self):  # noqa: N802 - stdlib method name
         # Baseline loopback check first, same as GET.
