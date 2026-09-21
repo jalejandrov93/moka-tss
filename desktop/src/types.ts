@@ -42,6 +42,10 @@ export interface Rule {
   value: number;
   mood: string;
   priority: number;
+  for?: number;
+  for_seconds?: number;
+  release?: number;
+  release_for?: number;
 }
 
 export interface RulesPayload {
