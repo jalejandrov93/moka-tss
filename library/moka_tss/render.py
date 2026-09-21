@@ -53,6 +53,69 @@ from PIL import Image, ImageDraw, ImageFont
 
 from library.moka_tss.theme import Theme, load_theme
 
+# ----------------------------------------------------------------- background
+
+
+def _draw_background(image: Image.Image, theme: Theme) -> None:
+    """Draw theme background image with fit and darken overlay."""
+    if theme.background is None:
+        return
+
+    bg_config = theme.background
+    try:
+        bg_img = Image.open(bg_config.path)
+    except (OSError, FileNotFoundError):
+        # If background image can't be loaded, fall back to solid color
+        return
+
+    width, height = image.size
+    fit = bg_config.fit
+    darken = bg_config.darken
+
+    # Resize background based on fit mode
+    if fit == "cover":
+        # Scale to cover entire canvas, may crop
+        bg_ratio = bg_img.width / bg_img.height
+        canvas_ratio = width / height
+        if bg_ratio > canvas_ratio:
+            # Background is wider - scale to height
+            new_height = height
+            new_width = int(height * bg_ratio)
+        else:
+            # Background is taller - scale to width
+            new_width = width
+            new_height = int(width / bg_ratio)
+        bg_img = bg_img.resize((new_width, new_height), Image.LANCZOS)
+        # Center crop
+        left = (new_width - width) // 2
+        top = (new_height - height) // 2
+        bg_img = bg_img.crop((left, top, left + width, top + height))
+
+    elif fit == "contain":
+        # Scale to fit entirely within canvas, may have bars
+        bg_img.thumbnail((width, height), Image.LANCZOS)
+        # Create new image with background color and paste centered
+        result = Image.new("RGB", (width, height), (0, 0, 0))
+        left = (width - bg_img.width) // 2
+        top = (height - bg_img.height) // 2
+        result.paste(bg_img, (left, top))
+        bg_img = result
+
+    elif fit == "stretch":
+        # Stretch to fill exactly
+        bg_img = bg_img.resize((width, height), Image.LANCZOS)
+
+    # Apply darken overlay
+    if darken > 0.0:
+        overlay = Image.new("RGBA", (width, height), (0, 0, 0, int(255 * darken)))
+        bg_img = bg_img.convert("RGBA")
+        bg_img = Image.alpha_composite(bg_img, overlay)
+        bg_img = bg_img.convert("RGB")
+
+    # Paste onto main image
+    image.paste(bg_img, (0, 0))
+
+
 # ----------------------------------------------------------------- interfaces
 
 
@@ -167,6 +230,47 @@ def _visible_providers(snapshot, hidden_providers):
         return []
     providers = snapshot.get("providers") or []
     return [p for p in providers if p.get("id") not in hidden_providers]
+
+
+def _theme_provider_selection(theme) -> list:
+    system = getattr(theme, "system", None)
+    quotas = getattr(system, "quotas", None)
+    return list(getattr(quotas, "providers", None) or [])
+
+
+def _theme_sensor_selection(theme) -> list:
+    system = getattr(theme, "system", None)
+    return list(getattr(system, "sensors", None) or [])
+
+
+def _apply_provider_selection(providers, theme) -> list:
+    """Filter and order providers per theme.system.quotas.providers.
+
+    An empty selection means "show all" (backwards compatible default).
+    Unknown ids in the selection are ignored; providers missing from the
+    selection are dropped only when the selection is non-empty.
+    """
+    wanted = _theme_provider_selection(theme)
+    if not wanted:
+        return providers
+    by_id = {}
+    for p in providers:
+        pid = p.get("id")
+        if pid not in by_id:
+            by_id[pid] = p
+    return [by_id[pid] for pid in wanted if pid in by_id]
+
+
+def _apply_sensor_selection(rows, theme) -> list:
+    """Filter and order (label, value, extra) rows per theme.system.sensors.
+
+    An empty selection means "show all in default order".
+    """
+    wanted = _theme_sensor_selection(theme)
+    if not wanted:
+        return rows
+    by_label = {label: row for label, row in ((r[0], r) for r in rows)}
+    return [by_label[label] for label in wanted if label in by_label]
 
 
 def _safe_percent(value) -> float:
@@ -298,6 +402,7 @@ def _draw_system_column(draw, rect, system, palette, fonts_candidates, theme):
         ("vram", gpu["vram"] if gpu else None,
          f"{gpu['vram_used'] / 1024:.1f}G" if gpu else None),
     ]
+    rows = _apply_sensor_selection(rows, theme)
     step = 30
     if len(rows) > 0 and y + step * len(rows) > ry + rh:
         available = max(30, rh - 28)
@@ -379,9 +484,11 @@ def render(snapshot: Optional[dict], state: Optional[dict], system: Optional[dic
     fonts_candidates = theme.fonts.candidates
 
     image = Image.new("RGB", size, palette.background)
+    _draw_background(image, theme)
     draw = ImageDraw.Draw(image)
 
     providers = _visible_providers(snapshot, hidden_providers)
+    providers = _apply_provider_selection(providers, theme)
     jobs = _running_jobs(state)
     worst, worst_name = _worst_provider_usage(providers)
     # The caller may already know the mood - the app resolves it through the
