@@ -96,7 +96,8 @@ los cuadros representativos para cada ánimo:
 | `calma_a/b/c.png` | 0 | Idle Stand | 0, 1, 2 | `calma` |
 | `atenta_a/b/c.png` | 3 | Walk | 0, 1, 2 | `atenta` |
 | `alert_a/b/c.png` | 2 | Sit Transition | 0, 1, 2 | `agobiada` |
-| `alarm_a/b/c.png` | 5 | Bark | 0, 1, 2 | `alarmada` (usa a/b; c reservado) |
+| `alarm_a.png` | — | Derivado: espejo horizontal de `atenta_a.png` | — | `alarmada` (silueta propia, mismo estilo) |
+| `alarm_b.png` | — | Derivado: espejo horizontal de `atenta_c.png` | — | `alarmada` (silueta propia, mismo estilo) |
 
 La fila 4 (Run) no se usa directamente: el ánimo `error` se genera en código
 desde los cuadros de `calma` con efecto glitch (ver `mascot.py:_glitch_frame`).
