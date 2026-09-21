@@ -89,10 +89,24 @@ export interface ThemeCard {
   sensors?: string[];
 }
 
+export type MascotVariant = "default" | "husky" | "happy" | "sad";
+
+export const MASCOT_OPTIONS: readonly { value: MascotVariant; label: string }[] = [
+  { value: "default", label: "Por defecto" },
+  { value: "husky", label: "Husky" },
+  { value: "happy", label: "Alegre" },
+  { value: "sad", label: "Triste" },
+] as const;
+
+export function isMascotVariant(val: unknown): val is MascotVariant {
+  return typeof val === "string" && (MASCOT_OPTIONS as readonly { value: string; label: string }[]).some((opt) => opt.value === val);
+}
+
 export interface ThemeConfig {
   id: string;
   name: string;
   cards: ThemeCard[];
-  mascotVariant: string;
+  mascotVariant: MascotVariant | string;
   backgroundImage?: string | null;
 }
+
