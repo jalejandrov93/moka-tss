@@ -73,3 +73,6 @@ Separar `MokaApp` en Core testeable + Host lifecycle + UI futura, dejando listo 
 - [x] MD-5.2 Tarjeta Mascota Detalle (job eea2ef01, opencode). Merge `c9914ca`. Mood + triggered-by + fired badges.
 - [x] MD-6.1 Motor reglas TS (job 47280ccf, agy). Merge `41afc7f`. lib/rules.ts: validateRule + evaluateRules con tie-break idéntico (sin histéresis, para Preview).
 - Gate fusionado: tsc + build OK en árbol combinado (268KB).
+- [ ] MD-6.2 RuleList + RuleForm (job 27231568, agy, md-62-ruleui, sin cablear).
+- [ ] MD-6.3 RulePreviewCard (job 9442f533, opencode, md-63-preview, sin cablear).
+- [ ] MD-8.2 Watchdog en step() vía Jules (job 0f886255, PR remoto).
