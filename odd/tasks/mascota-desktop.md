@@ -87,3 +87,4 @@ Separar `MokaApp` en Core testeable + Host lifecycle + UI futura, dejando listo 
 - [x] MD-11.4 Grid dinámico desde tema (job 0a10d6e6, agy). Merge `79e1914`. Orden/visibilidad del backend, override local con POST.
 - [x] MD-11.5 Pipeline imagen (job f70381cf, opencode). Merge `28cc9a6`. lib/image.ts: pick ≤2MB, WebP 1920px/0.85, rechaza >400KB.
 - Gate fusionado: tsc + build OK.
+- [x] MD-11.6 Panel Tema (job 6d1fef6f, agy). Merge. Card Tema: fondo con upload+preview, variante, toggles unificados. Hallazgo padre: backend descartaba backgroundImage → fix `3deaf18` (persiste dataURL ≤400KB + 2 tests). Fase 11 CERRADA.
