@@ -2,13 +2,22 @@ import "./index.css";
 import React from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { listen } from "@tauri-apps/api/event";
-import type { StatusSnapshot, RulesPayload, Rule, ServiceStatus, WslStatus, AppConfig } from "./types";
+import type { StatusSnapshot, RulesPayload, Rule, ServiceStatus, WslStatus, AppConfig, ThemeConfig } from "./types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RuleList, RuleForm, RulePreviewCard } from "@/components/rules";
 import { type RuleConfig, DEFAULT_MOODS } from "@/lib/rules";
-import { loadVisible, saveVisible, getAllCardIds, getCardLabel, type CardId } from "@/lib/dashboard";
+import {
+  loadVisible,
+  saveVisible,
+  getAllCardIds,
+  getCardLabel,
+  getDefaultTheme,
+  getOrderedVisibleCards,
+  updateThemeCardVisibility,
+  type CardId,
+} from "@/lib/dashboard";
 
 const DEFAULT_PORT = 8765;
 let serverPort = DEFAULT_PORT;
@@ -38,6 +47,8 @@ export let editingRule: RuleConfig | null = null;
 export let originalRuleId: string | null = null;
 export let rulesSaveError: string | null = null;
 export let visibleCards: CardId[] = loadVisible();
+export let currentTheme: ThemeConfig = getDefaultTheme();
+let themeDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 function getRoot(): Root | null {
   if (root) return root;
@@ -1165,12 +1176,20 @@ function renderCustomizeBar(): React.ReactElement {
             type: "checkbox",
             checked: visibleCards.includes(cardId),
             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-              if (e.target.checked) {
-                visibleCards = [...visibleCards, cardId];
+              const checked = e.target.checked;
+              if (checked) {
+                if (!visibleCards.includes(cardId)) {
+                  visibleCards = [...visibleCards, cardId];
+                }
               } else {
                 visibleCards = visibleCards.filter((id) => id !== cardId);
               }
               saveVisible(visibleCards);
+
+              // Update theme card visibility and persist via POST /api/theme (debounced, best-effort)
+              currentTheme = updateThemeCardVisibility(currentTheme, cardId, checked);
+              debouncedSaveTheme(currentTheme);
+
               renderApp();
             },
             className:
@@ -1187,7 +1206,9 @@ function renderApp(): void {
   const currentRoot = getRoot();
   if (!currentRoot) return;
 
-  const visibleCardElements = visibleCards
+  const cardIdsToRender = getOrderedVisibleCards(currentTheme);
+
+  const visibleCardElements = cardIdsToRender
     .map((id) => cardRenderers[id])
     .filter(Boolean)
     .map((fn) => fn());
@@ -1334,6 +1355,61 @@ export async function pollServices(): Promise<void> {
   renderApp();
 }
 
+export async function fetchTheme(): Promise<void> {
+  try {
+    const response = await fetch(`${baseUrl()}/api/theme`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = (await response.json()) as ThemeConfig;
+    if (data && typeof data.id === "string" && Array.isArray(data.cards)) {
+      currentTheme = data;
+    } else {
+      currentTheme = getDefaultTheme();
+    }
+  } catch (err) {
+    console.warn("Error fetching theme, using default:", err);
+    currentTheme = getDefaultTheme();
+  }
+  visibleCards = getOrderedVisibleCards(currentTheme);
+  saveVisible(visibleCards);
+}
+
+export async function saveTheme(theme: ThemeConfig): Promise<boolean> {
+  try {
+    const response = await fetch(`${baseUrl()}/api/theme`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Origin": baseUrl(),
+      },
+      body: JSON.stringify(theme),
+    });
+    if (!response.ok) {
+      console.warn(`Failed to save theme: HTTP ${response.status}`);
+      return false;
+    }
+    const saved = (await response.json()) as ThemeConfig;
+    if (saved && typeof saved.id === "string") {
+      currentTheme = saved;
+    }
+    return true;
+  } catch (err) {
+    console.warn("Best-effort POST /api/theme failed:", err);
+    return false;
+  }
+}
+
+export function debouncedSaveTheme(theme: ThemeConfig, delayMs = 300): void {
+  if (themeDebounceTimer !== null) {
+    clearTimeout(themeDebounceTimer);
+  }
+  themeDebounceTimer = setTimeout(() => {
+    themeDebounceTimer = null;
+    void saveTheme(theme);
+  }, delayMs);
+}
+
 async function setupSidecarListener(): Promise<void> {
   try {
     await listen<number>("moka-sidecar-ready", (event) => {
@@ -1341,6 +1417,7 @@ async function setupSidecarListener(): Promise<void> {
       if (typeof port === "number" && port > 0) {
         serverPort = port;
         isBrightnessInitialized = false;
+        void fetchTheme().then(renderApp);
         void fetchAll();
         void pollServices();
       }
@@ -1351,6 +1428,7 @@ async function setupSidecarListener(): Promise<void> {
 }
 
 void setupSidecarListener();
+void fetchTheme().then(renderApp);
 void fetchAll();
 void pollServices();
 setInterval(fetchAll, POLL_INTERVAL_MS);

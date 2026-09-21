@@ -82,3 +82,16 @@ export interface AppConfig {
   [key: string]: unknown;
 }
 
+export interface ThemeCard {
+  id: string;
+  visible: boolean;
+  order: number;
+  sensors?: string[];
+}
+
+export interface ThemeConfig {
+  id: string;
+  name: string;
+  cards: ThemeCard[];
+  mascotVariant: string;
+}
