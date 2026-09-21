@@ -242,5 +242,96 @@ class ThemeRenderTests(unittest.TestCase):
         self.assertEqual(img1.tobytes(), img2.tobytes())
 
 
+class ThemeBackgroundTests(unittest.TestCase):
+    def test_background_defaults_to_none(self):
+        theme = Theme.from_dict(minimal_theme_dict())
+        self.assertIsNone(theme.background)
+
+    def test_background_valid_configs(self):
+        for fit in ("cover", "contain", "stretch"):
+            data = minimal_theme_dict()
+            data["background"] = {"path": "/tmp/bg.png", "fit": fit, "darken": 0.5}
+            theme = Theme.from_dict(data)
+            self.assertEqual(theme.background.fit, fit)
+            self.assertEqual(theme.background.darken, 0.5)
+
+    def test_background_rejects_bad_values(self):
+        bad = [
+            {"fit": "cover", "darken": 0.0},
+            {"path": "/tmp/bg.png", "fit": "tile", "darken": 0.0},
+            {"path": "/tmp/bg.png", "fit": "cover", "darken": 1.5},
+            {"path": "/tmp/bg.png", "fit": "cover", "darken": "x"},
+            {"path": "/tmp/bg.png", "fit": "cover", "darken": 0.0, "bogus": 1},
+            "not-a-dict",
+        ]
+        for bg in bad:
+            data = minimal_theme_dict()
+            data["background"] = bg
+            with self.assertRaises(ThemeValidationError, msg=f"{bg!r}"):
+                Theme.from_dict(data)
+
+    def test_render_with_background_image(self):
+        import os
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "bg.png")
+            Image.new("RGB", (100, 100), (200, 0, 0)).save(path)
+            data = minimal_theme_dict()
+            data["background"] = {"path": path, "fit": "cover", "darken": 0.0}
+            theme = Theme.from_dict(data)
+            img = render(None, None, None, theme=theme, sprites=StubSprites(), now=fixed_clock)
+            self.assertEqual(img.size, (480, 320))
+            self.assertEqual(img.mode, "RGB")
+
+    def test_render_with_missing_background_falls_back(self):
+        data = minimal_theme_dict()
+        data["background"] = {"path": "/nonexistent/bg.png"}
+        theme = Theme.from_dict(data)
+        img = render(None, None, None, theme=theme, sprites=StubSprites(), now=fixed_clock)
+        self.assertEqual(img.size, (480, 320))
+
+
+class ThemeSelectionTests(unittest.TestCase):
+    def _theme_with_system(self, system):
+        data = minimal_theme_dict()
+        data["system"] = system
+        return Theme.from_dict(data)
+
+    def test_sensor_selection_filters_and_orders(self):
+        from library.moka_tss.render import _apply_sensor_selection
+
+        theme = self._theme_with_system({"sensors": ["ram", "cpu"]})
+        rows = [("cpu", 10.0, None), ("gpu", 20.0, None), ("ram", 30.0, None)]
+        self.assertEqual(
+            [r[0] for r in _apply_sensor_selection(rows, theme)], ["ram", "cpu"]
+        )
+
+    def test_empty_sensor_selection_keeps_all(self):
+        from library.moka_tss.render import _apply_sensor_selection
+
+        theme = self._theme_with_system({})
+        rows = [("cpu", 10.0, None), ("ram", 30.0, None)]
+        self.assertEqual(_apply_sensor_selection(rows, theme), rows)
+
+    def test_provider_selection_filters_and_orders(self):
+        from library.moka_tss.render import _apply_provider_selection
+
+        theme = self._theme_with_system({"quotas": {"providers": ["codex", "claude"]}})
+        providers = [{"id": "claude"}, {"id": "codex"}, {"id": "other"}]
+        self.assertEqual(
+            [p["id"] for p in _apply_provider_selection(providers, theme)],
+            ["codex", "claude"],
+        )
+
+    def test_render_respects_sensor_selection(self):
+        data = minimal_theme_dict()
+        data["system"] = {"sensors": ["ram"]}
+        theme = Theme.from_dict(data)
+        system = {"cpu": 15.0, "ram": 35.0, "gpu": None}
+        img = render(None, None, system, theme=theme, sprites=StubSprites(), now=fixed_clock)
+        self.assertEqual(img.size, (480, 320))
+
+
 if __name__ == "__main__":
     unittest.main()

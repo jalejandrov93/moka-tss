@@ -29,7 +29,7 @@ is fundamentally unsuited to Mascota:
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Sequence, Tuple, Union
+from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 import yaml
 
@@ -38,7 +38,7 @@ import yaml
 REQUIRED_TOP_LEVEL = ("name", "display", "palette", "fonts", "regions")
 ALLOWED_TOP_LEVEL = {
     "name", "display", "palette", "fonts", "regions", "separators",
-    "author", "description", "version",
+    "author", "description", "version", "background", "system",
 }
 
 REQUIRED_DISPLAY = ("size", "orientation")
@@ -138,6 +138,24 @@ class SeparatorConfig:
 
 
 @dataclass(frozen=True)
+class BackgroundConfig:
+    path: str
+    fit: str = "cover"          # cover | contain | stretch
+    darken: float = 0.0         # 0.0 to 1.0
+
+
+@dataclass(frozen=True)
+class QuotasSystemConfig:
+    providers: Tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class SystemConfig:
+    sensors: Tuple[str, ...] = ("cpu", "gpu", "ram", "vram")
+    quotas: QuotasSystemConfig = QuotasSystemConfig()
+
+
+@dataclass(frozen=True)
 class Theme:
     name: str
     display: DisplayConfig
@@ -145,6 +163,8 @@ class Theme:
     fonts: FontsConfig
     regions: Dict[str, RegionConfig]
     separators: Tuple[SeparatorConfig, ...] = ()
+    background: Optional[BackgroundConfig] = None
+    system: SystemConfig = SystemConfig()
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Theme":
@@ -158,6 +178,8 @@ class Theme:
             fonts=_build_fonts_config(name, data["fonts"]),
             regions=_validate_and_build_regions(name, data["regions"]),
             separators=_validate_and_build_separators(name, data.get("separators", [])),
+            background=_build_background_config(name, data.get("background")),
+            system=_build_system_config(name, data.get("system")),
         )
 
 
@@ -214,6 +236,67 @@ def _build_fonts_config(name: str, fnt: Any) -> FontsConfig:
     if not isinstance(candidates, (list, tuple)):
         raise ThemeValidationError(f"Theme '{name}': fonts.candidates must be a list of font paths")
     return FontsConfig(candidates=tuple(str(c) for c in candidates))
+
+
+def _build_background_config(name: str, bg: Any) -> Optional[BackgroundConfig]:
+    if bg is None:
+        return None
+    if not isinstance(bg, dict):
+        raise ThemeValidationError(f"Theme '{name}': background must be a dictionary")
+
+    allowed_bg_keys = {"path", "fit", "darken"}
+    for k in bg:
+        if k not in allowed_bg_keys:
+            raise ThemeValidationError(f"Theme '{name}': unknown field '{k}' in background")
+
+    if "path" not in bg:
+        raise ThemeValidationError(f"Theme '{name}': missing required field 'path' in background")
+    path = str(bg["path"])
+
+    fit = str(bg.get("fit", "cover")).lower()
+    if fit not in ("cover", "contain", "stretch"):
+        raise ThemeValidationError(f"Theme '{name}': background.fit must be 'cover', 'contain', or 'stretch'")
+
+    try:
+        darken = float(bg.get("darken", 0.0))
+    except (ValueError, TypeError) as exc:
+        raise ThemeValidationError(f"Theme '{name}': background.darken must be a number") from exc
+    if darken < 0.0 or darken > 1.0:
+        raise ThemeValidationError(f"Theme '{name}': background.darken must be between 0.0 and 1.0")
+
+    return BackgroundConfig(path=path, fit=fit, darken=darken)
+
+
+def _build_system_config(name: str, sys: Any) -> SystemConfig:
+    if sys is None:
+        return SystemConfig()
+    if not isinstance(sys, dict):
+        raise ThemeValidationError(f"Theme '{name}': system must be a dictionary")
+
+    allowed_sys_keys = {"sensors", "quotas"}
+    for k in sys:
+        if k not in allowed_sys_keys:
+            raise ThemeValidationError(f"Theme '{name}': unknown field '{k}' in system")
+
+    # Parse sensors
+    sensors_raw = sys.get("sensors", ["cpu", "gpu", "ram", "vram"])
+    if not isinstance(sensors_raw, (list, tuple)):
+        raise ThemeValidationError(f"Theme '{name}': system.sensors must be a list of strings")
+    sensors = tuple(str(s) for s in sensors_raw)
+
+    # Parse quotas.providers
+    quotas_raw = sys.get("quotas", {})
+    if not isinstance(quotas_raw, dict):
+        raise ThemeValidationError(f"Theme '{name}': system.quotas must be a dictionary")
+    providers_raw = quotas_raw.get("providers", [])
+    if not isinstance(providers_raw, (list, tuple)):
+        raise ThemeValidationError(f"Theme '{name}': system.quotas.providers must be a list of strings")
+    providers = tuple(str(p) for p in providers_raw)
+
+    return SystemConfig(
+        sensors=sensors,
+        quotas=QuotasSystemConfig(providers=providers),
+    )
 
 
 def _validate_keys(theme_name: str, data: dict, required: Sequence[str], allowed: set, context: str) -> None:
@@ -326,9 +409,36 @@ def load_theme(name_or_path: Union[str, Path]) -> Theme:
         else:
             raise FileNotFoundError(f"Theme file not found: {name_or_path} (checked {candidate})")
 
+    theme_dir = path.parent
     with open(path, "r", encoding="utf-8") as f:
         data = yaml.safe_load(f)
 
     if not isinstance(data, dict):
         raise ThemeValidationError(f"Theme file {path} does not contain a YAML mapping")
-    return Theme.from_dict(data)
+    theme = Theme.from_dict(data)
+
+    # Resolve background path relative to theme directory
+    if theme.background is not None:
+        bg_path = Path(theme.background.path)
+        if not bg_path.is_absolute():
+            resolved_path = (theme_dir / bg_path).resolve()
+            if resolved_path.is_file():
+                # Create a new theme with resolved background path
+                theme = Theme(
+                    name=theme.name,
+                    display=theme.display,
+                    palette=theme.palette,
+                    fonts=theme.fonts,
+                    regions=theme.regions,
+                    separators=theme.separators,
+                    background=BackgroundConfig(
+                        path=str(resolved_path),
+                        fit=theme.background.fit,
+                        darken=theme.background.darken,
+                    ),
+                    system=theme.system,
+                )
+            else:
+                raise FileNotFoundError(f"Background image not found: {resolved_path}")
+
+    return theme
