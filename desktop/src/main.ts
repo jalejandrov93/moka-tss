@@ -2,6 +2,7 @@ import "./index.css";
 import React from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { listen } from "@tauri-apps/api/event";
+import { App } from "./App";
 import type { StatusSnapshot, RulesPayload, Rule, ServiceStatus, WslStatus, AppConfig, ThemeConfig } from "./types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -80,10 +81,38 @@ let themeDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 function getRoot(): Root | null {
   if (root) return root;
-  const container = document.getElementById("status-container") || document.getElementById("root");
+  const container = document.getElementById("root") || document.getElementById("status-container");
   if (!container) return null;
   root = createRoot(container);
   return root;
+}
+
+export function getStatusInfo(): {
+  text: string;
+  variant: "success" | "secondary" | "destructive";
+  mood: string | null;
+  serverPort: number;
+} {
+  let text = "No presente";
+  let variant: "success" | "secondary" | "destructive" = "destructive";
+
+  if (currentStatus?.screen?.simulate) {
+    text = "Simulada";
+    variant = "secondary";
+  } else if (currentStatus?.screen?.present) {
+    text = "Conectada";
+    variant = "success";
+  } else {
+    text = "No presente";
+    variant = "destructive";
+  }
+
+  return {
+    text,
+    variant,
+    mood: currentStatus?.mood ?? null,
+    serverPort,
+  };
 }
 
 function renderServiciosCard(): React.ReactElement {
@@ -1165,7 +1194,7 @@ export function renderReglasCard(): React.ReactElement {
   );
 }
 
-const cardRenderers: Record<CardId, () => React.ReactElement> = {
+export const cardRenderers: Record<CardId, () => React.ReactElement> = {
   servicios: renderServiciosCard,
   mascota: renderMascotaCard,
   "mascota-detalle": renderMascotaDetailCard,
@@ -1525,61 +1554,10 @@ export function renderCustomizeBar(): React.ReactElement {
   return renderTemaCard();
 }
 
-function renderApp(): void {
+export function renderApp(): void {
   const currentRoot = getRoot();
   if (!currentRoot) return;
-
-  const cardIdsToRender = getOrderedVisibleCards(currentTheme);
-
-  const visibleCardElements = cardIdsToRender
-    .map((id) => cardRenderers[id])
-    .filter(Boolean)
-    .map((fn) => fn());
-
-  const hasBackground = Boolean(
-    currentTheme.backgroundImage && currentTheme.backgroundImage.trim() !== ""
-  );
-  const containerStyle: React.CSSProperties = hasBackground
-    ? {
-        backgroundImage: `linear-gradient(rgba(2, 6, 23, 0.85), rgba(2, 6, 23, 0.85)), url("${currentTheme.backgroundImage}")`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundAttachment: "fixed",
-        backgroundRepeat: "no-repeat",
-      }
-    : {};
-
-  if (typeof document !== "undefined" && document.body) {
-    if (hasBackground) {
-      document.body.style.backgroundImage = `linear-gradient(rgba(2, 6, 23, 0.85), rgba(2, 6, 23, 0.85)), url("${currentTheme.backgroundImage}")`;
-      document.body.style.backgroundSize = "cover";
-      document.body.style.backgroundPosition = "center";
-      document.body.style.backgroundAttachment = "fixed";
-      document.body.style.backgroundRepeat = "no-repeat";
-    } else {
-      document.body.style.backgroundImage = "";
-      document.body.style.backgroundSize = "";
-      document.body.style.backgroundPosition = "";
-      document.body.style.backgroundAttachment = "";
-      document.body.style.backgroundRepeat = "";
-    }
-  }
-
-  currentRoot.render(
-    React.createElement(
-      "div",
-      {
-        className: "min-h-screen bg-slate-950 text-slate-50 p-6 flex flex-col items-center gap-6",
-        style: containerStyle,
-      },
-      renderTemaCard(),
-      React.createElement(
-        "div",
-        { className: "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 w-full max-w-[96rem]" },
-        ...visibleCardElements
-      )
-    )
-  );
+  currentRoot.render(React.createElement(App));
 }
 
 export async function fetchStatus(): Promise<void> {
@@ -1799,6 +1777,7 @@ async function setupSidecarListener(): Promise<void> {
 }
 
 void setupSidecarListener();
+renderApp();
 void fetchTheme().then(renderApp);
 void fetchAll();
 void pollServices();
