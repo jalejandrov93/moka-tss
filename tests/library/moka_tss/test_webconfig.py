@@ -620,5 +620,269 @@ class CorsTests(WebConfigServerTestCase):
             conn.close()
 
 
+def _theme(cards, name="Test", mascotVariant="default"):
+    """Build a theme payload dict for tests."""
+    return {"id": "test", "name": name, "cards": cards, "mascotVariant": mascotVariant}
+
+
+class ThemeEndpointTests(WebConfigServerTestCase):
+    """Tests for the /api/theme GET and POST endpoints."""
+
+    def test_get_theme_returns_default_when_no_file_saved(self):
+        status, body = self._get("/api/theme")
+        self.assertEqual(status, 200)
+        data = json.loads(body)
+        self.assertEqual(data["id"], "default")
+        self.assertEqual(data["name"], "Por defecto")
+        self.assertEqual(data["cards"], [])
+        self.assertEqual(data["mascotVariant"], "default")
+
+    def test_get_theme_returns_saved_theme(self):
+        theme = {
+            "id": "mytheme",
+            "name": "Mi Tema",
+            "cards": [
+                {"id": "cpu", "visible": True, "order": 0, "sensors": ["cpu_percent"]}
+            ],
+            "mascotVariant": "happy",
+        }
+        webconfig.save_config(self.config_path, {"theme": theme})
+        status, body = self._get("/api/theme")
+        self.assertEqual(status, 200)
+        data = json.loads(body)
+        self.assertEqual(data["id"], "mytheme")
+        self.assertEqual(data["name"], "Mi Tema")
+        self.assertEqual(len(data["cards"]), 1)
+        self.assertEqual(data["cards"][0]["id"], "cpu")
+        self.assertTrue(data["cards"][0]["visible"])
+        self.assertEqual(data["cards"][0]["order"], 0)
+        self.assertEqual(data["cards"][0]["sensors"], ["cpu_percent"])
+        self.assertEqual(data["mascotVariant"], "happy")
+
+    def test_post_theme_valid_round_trips(self):
+        theme = {
+            "id": "newtheme",
+            "name": "Nuevo Tema",
+            "cards": [
+                {"id": "ram", "visible": False, "order": 1, "sensors": ["memory_percent"]},
+                {"id": "disk", "visible": True, "order": 2},
+            ],
+            "mascotVariant": "sad",
+        }
+        status, body = self._post_json("/api/theme", theme)
+        self.assertEqual(status, 200)
+        data = json.loads(body)
+        self.assertEqual(data["id"], "newtheme")
+        self.assertEqual(data["name"], "Nuevo Tema")
+        self.assertEqual(len(data["cards"]), 2)
+        self.assertEqual(data["cards"][0]["id"], "ram")
+        self.assertFalse(data["cards"][0]["visible"])
+        self.assertEqual(data["cards"][0]["order"], 1)
+        self.assertEqual(data["cards"][0]["sensors"], ["memory_percent"])
+        self.assertEqual(data["cards"][1]["id"], "disk")
+        self.assertTrue(data["cards"][1]["visible"])
+        self.assertEqual(data["cards"][1]["order"], 2)
+        self.assertEqual(data["cards"][1]["sensors"], [])
+        self.assertEqual(data["mascotVariant"], "sad")
+
+        # Verify it persisted
+        status, body = self._get("/api/theme")
+        self.assertEqual(status, 200)
+        data = json.loads(body)
+        self.assertEqual(data["id"], "newtheme")
+
+    def test_post_theme_persists_to_disk(self):
+        theme = {"id": "persist", "name": "Persist", "cards": [], "mascotVariant": "default"}
+        self._post_json("/api/theme", theme)
+        self.assertTrue(self.config_path.is_file())
+        saved = json.loads(self.config_path.read_text(encoding="utf-8"))
+        self.assertEqual(saved["theme"]["id"], "persist")
+
+    def test_post_theme_rejects_invalid_theme_id(self):
+        status, body = self._post_json("/api/theme", {"id": "", "name": "Test", "cards": [], "mascotVariant": "default"})
+        self.assertEqual(status, 400)
+        self.assertIn("theme.id", json.loads(body)["error"])
+        self.assertFalse(self.config_path.is_file())
+
+    def test_post_theme_rejects_invalid_theme_name(self):
+        status, body = self._post_json("/api/theme", {"id": "test", "name": "  ", "cards": [], "mascotVariant": "default"})
+        self.assertEqual(status, 400)
+        self.assertIn("theme.name", json.loads(body)["error"])
+        self.assertFalse(self.config_path.is_file())
+
+    def test_post_theme_rejects_invalid_mascot_variant(self):
+        status, body = self._post_json("/api/theme", {"id": "test", "name": "Test", "cards": [], "mascotVariant": 123})
+        self.assertEqual(status, 400)
+        self.assertIn("theme.mascotVariant", json.loads(body)["error"])
+        self.assertFalse(self.config_path.is_file())
+
+    def test_post_theme_rejects_cards_not_a_list(self):
+        status, body = self._post_json("/api/theme", _theme("not a list"))
+        self.assertEqual(status, 400)
+        self.assertIn("theme.cards", json.loads(body)["error"])
+        self.assertFalse(self.config_path.is_file())
+
+    def test_post_theme_rejects_card_with_invalid_id(self):
+        status, body = self._post_json("/api/theme", _theme([{"id": "", "visible": True, "order": 0}]))
+        self.assertEqual(status, 400)
+        self.assertIn("theme.cards[0].id", json.loads(body)["error"])
+        self.assertFalse(self.config_path.is_file())
+
+    def test_post_theme_rejects_card_visible_as_int(self):
+        status, body = self._post_json("/api/theme", _theme([{"id": "cpu", "visible": 1, "order": 0}]))
+        self.assertEqual(status, 400)
+        self.assertIn("theme.cards[0].visible", json.loads(body)["error"])
+        self.assertFalse(self.config_path.is_file())
+
+    def test_post_theme_rejects_card_order_as_negative(self):
+        status, body = self._post_json("/api/theme", _theme([{"id": "cpu", "visible": True, "order": -1}]))
+        self.assertEqual(status, 400)
+        self.assertIn("theme.cards[0].order", json.loads(body)["error"])
+        self.assertFalse(self.config_path.is_file())
+
+    def test_post_theme_rejects_card_order_as_bool(self):
+        status, body = self._post_json("/api/theme", _theme([{"id": "cpu", "visible": True, "order": True}]))
+        self.assertEqual(status, 400)
+        self.assertIn("theme.cards[0].order", json.loads(body)["error"])
+        self.assertFalse(self.config_path.is_file())
+
+    def test_post_theme_rejects_card_sensors_not_list_of_strings(self):
+        payload = _theme([{"id": "cpu", "visible": True, "order": 0, "sensors": "not a list"}])
+        status, body = self._post_json("/api/theme", payload)
+        self.assertEqual(status, 400)
+        self.assertIn("theme.cards[0].sensors", json.loads(body)["error"])
+        self.assertFalse(self.config_path.is_file())
+
+    def test_post_theme_rejects_card_sensors_with_non_string(self):
+        status, body = self._post_json("/api/theme", _theme([{"id": "cpu", "visible": True, "order": 0, "sensors": [123]}]))
+        self.assertEqual(status, 400)
+        self.assertIn("theme.cards[0].sensors", json.loads(body)["error"])
+        self.assertFalse(self.config_path.is_file())
+
+    def test_post_theme_invalid_json_body(self):
+        headers = {
+            "Content-Type": "application/json",
+            "Origin": f"http://127.0.0.1:{self.server.port}",
+        }
+        status, body = self._post("/api/theme", b"not json", headers=headers)
+        self.assertEqual(status, 400)
+
+    def test_post_theme_with_wrong_origin_is_rejected(self):
+        headers = {
+            "Content-Type": "application/json",
+            "Origin": "http://evil.example.com",
+        }
+        status, body = self._post("/api/theme", json.dumps(_theme([])).encode("utf-8"), headers=headers)
+        self.assertEqual(status, 403)
+        self.assertFalse(self.config_path.is_file())
+
+    def test_post_theme_with_wrong_content_type_is_rejected(self):
+        headers = {
+            "Content-Type": "text/plain",
+            "Origin": f"http://127.0.0.1:{self.server.port}",
+        }
+        status, body = self._post("/api/theme", json.dumps(_theme([])).encode("utf-8"), headers=headers)
+        self.assertEqual(status, 415)
+        self.assertFalse(self.config_path.is_file())
+
+    def test_get_theme_with_wrong_host_header_is_rejected(self):
+        status, body = self._get("/api/theme", headers={"Host": "evil.example.com"})
+        self.assertEqual(status, 403)
+
+    def test_post_theme_invalid_never_creates_file(self):
+        self.assertFalse(self.config_path.is_file())
+        status, body = self._post_json("/api/theme", _theme([{"id": "", "visible": True, "order": 0}]))
+        self.assertEqual(status, 400)
+        self.assertFalse(self.config_path.is_file())
+
+
+class ThemeValidationTests(unittest.TestCase):
+    """Direct unit tests for theme validation logic."""
+
+    def _base(self, **overrides):
+        data = dict(webconfig.DEFAULT_SETTINGS)
+        data.update(overrides)
+        return data
+
+    def test_default_theme_is_valid(self):
+        normalized = webconfig.validate_config(self._base())
+        self.assertEqual(normalized["theme"]["id"], "default")
+        self.assertEqual(normalized["theme"]["name"], "Por defecto")
+        self.assertEqual(normalized["theme"]["cards"], [])
+        self.assertEqual(normalized["theme"]["mascotVariant"], "default")
+
+    def test_valid_theme_passes(self):
+        theme = {
+            "id": "mytheme",
+            "name": "Mi Tema",
+            "cards": [
+                {"id": "cpu", "visible": True, "order": 0, "sensors": ["cpu_percent"]},
+                {"id": "ram", "visible": False, "order": 1},
+            ],
+            "mascotVariant": "happy",
+        }
+        normalized = webconfig.validate_config(self._base(theme=theme))
+        self.assertEqual(normalized["theme"]["id"], "mytheme")
+        self.assertEqual(normalized["theme"]["name"], "Mi Tema")
+        self.assertEqual(len(normalized["theme"]["cards"]), 2)
+        self.assertEqual(normalized["theme"]["cards"][0]["sensors"], ["cpu_percent"])
+        self.assertEqual(normalized["theme"]["cards"][1]["sensors"], [])
+        self.assertEqual(normalized["theme"]["mascotVariant"], "happy")
+
+    def test_theme_id_must_be_non_empty_string(self):
+        with self.assertRaises(webconfig.ConfigValidationError) as ctx:
+            webconfig.validate_config(self._base(theme={"id": "", "name": "Test", "cards": [], "mascotVariant": "default"}))
+        self.assertIn("theme.id", str(ctx.exception))
+
+    def test_theme_name_must_be_non_empty_string(self):
+        with self.assertRaises(webconfig.ConfigValidationError) as ctx:
+            webconfig.validate_config(self._base(theme={"id": "test", "name": "  ", "cards": [], "mascotVariant": "default"}))
+        self.assertIn("theme.name", str(ctx.exception))
+
+    def test_theme_mascot_variant_must_be_string(self):
+        with self.assertRaises(webconfig.ConfigValidationError) as ctx:
+            webconfig.validate_config(self._base(theme={"id": "test", "name": "Test", "cards": [], "mascotVariant": 123}))
+        self.assertIn("theme.mascotVariant", str(ctx.exception))
+
+    def test_theme_cards_must_be_list(self):
+        with self.assertRaises(webconfig.ConfigValidationError) as ctx:
+            webconfig.validate_config(self._base(theme=_theme("not a list")))
+        self.assertIn("theme.cards", str(ctx.exception))
+
+    def test_card_id_must_be_non_empty_string(self):
+        with self.assertRaises(webconfig.ConfigValidationError) as ctx:
+            webconfig.validate_config(self._base(theme=_theme([{"id": "", "visible": True, "order": 0}])))
+        self.assertIn("theme.cards[0].id", str(ctx.exception))
+
+    def test_card_visible_must_be_bool_rejects_int(self):
+        with self.assertRaises(webconfig.ConfigValidationError) as ctx:
+            webconfig.validate_config(self._base(theme=_theme([{"id": "cpu", "visible": 1, "order": 0}])))
+        self.assertIn("theme.cards[0].visible", str(ctx.exception))
+
+    def test_card_order_must_be_int_ge_zero(self):
+        with self.assertRaises(webconfig.ConfigValidationError) as ctx:
+            webconfig.validate_config(self._base(theme=_theme([{"id": "cpu", "visible": True, "order": -1}])))
+        self.assertIn("theme.cards[0].order", str(ctx.exception))
+
+    def test_card_order_rejects_bool(self):
+        with self.assertRaises(webconfig.ConfigValidationError) as ctx:
+            webconfig.validate_config(self._base(theme=_theme([{"id": "cpu", "visible": True, "order": True}])))
+        self.assertIn("theme.cards[0].order", str(ctx.exception))
+
+    def test_card_sensors_optional_list_of_strings(self):
+        card = {"id": "cpu", "visible": True, "order": 0, "sensors": ["a", "b"]}
+        normalized = webconfig.validate_config(self._base(theme=_theme([card])))
+        self.assertEqual(normalized["theme"]["cards"][0]["sensors"], ["a", "b"])
+
+    def test_card_sensors_missing_defaults_to_empty(self):
+        normalized = webconfig.validate_config(self._base(theme=_theme([{"id": "cpu", "visible": True, "order": 0}])))
+        self.assertEqual(normalized["theme"]["cards"][0]["sensors"], [])
+
+    def test_card_sensors_rejects_non_string(self):
+        with self.assertRaises(webconfig.ConfigValidationError) as ctx:
+            webconfig.validate_config(self._base(theme=_theme([{"id": "cpu", "visible": True, "order": 0, "sensors": [123]}])))
+        self.assertIn("theme.cards[0].sensors", str(ctx.exception))
+
+
 if __name__ == "__main__":
     unittest.main()

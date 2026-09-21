@@ -113,6 +113,7 @@ DEFAULT_SETTINGS: Dict[str, object] = {
     "orientation": "landscape",
     "refresh_interval_seconds": 2.0,
     "services": [],
+    "theme": {"id": "default", "name": "Por defecto", "cards": [], "mascotVariant": "default"},
 }
 
 STATIC_ASSETS = {
@@ -222,6 +223,63 @@ def _validate_services(data: dict) -> list:
     return normalized_services
 
 
+def _validate_theme_card(card: dict, index: int) -> dict:
+    """Validate one theme card entry, returning the normalized dict."""
+    if not isinstance(card, dict):
+        raise ConfigValidationError(
+            f"Setting 'theme.cards[{index}]' must be an object, got {card!r}."
+        )
+    card_id = card.get("id")
+    if not isinstance(card_id, str) or not card_id.strip():
+        raise ConfigValidationError(
+            f"Setting 'theme.cards[{index}].id' must be a non-empty string, got {card_id!r}."
+        )
+    visible = card.get("visible")
+    if not isinstance(visible, bool):
+        raise ConfigValidationError(
+            f"Setting 'theme.cards[{index}].visible' must be a boolean, got {visible!r}."
+        )
+    order = card.get("order")
+    if isinstance(order, bool) or not isinstance(order, int) or order < 0:
+        raise ConfigValidationError(
+            f"Setting 'theme.cards[{index}].order' must be an integer >= 0, got {order!r}."
+        )
+    sensors = card.get("sensors")
+    if sensors is not None:
+        if not isinstance(sensors, list) or not all(isinstance(s, str) for s in sensors):
+            raise ConfigValidationError(
+                f"Setting 'theme.cards[{index}].sensors' must be a list of strings, got {sensors!r}."
+            )
+    return {"id": card_id, "visible": visible, "order": order, "sensors": sensors or []}
+
+
+def _validate_theme(data: dict) -> dict:
+    """Validate the `theme` object, returning a normalized dict."""
+    theme = data.get("theme", {})
+    if not isinstance(theme, dict):
+        raise ConfigValidationError(f"Setting 'theme' must be an object, got {theme!r}.")
+
+    theme_id = theme.get("id")
+    if not isinstance(theme_id, str) or not theme_id.strip():
+        raise ConfigValidationError(f"Setting 'theme.id' must be a non-empty string, got {theme_id!r}.")
+
+    name = theme.get("name")
+    if not isinstance(name, str) or not name.strip():
+        raise ConfigValidationError(f"Setting 'theme.name' must be a non-empty string, got {name!r}.")
+
+    mascot_variant = theme.get("mascotVariant")
+    if not isinstance(mascot_variant, str):
+        raise ConfigValidationError(f"Setting 'theme.mascotVariant' must be a string, got {mascot_variant!r}.")
+
+    cards = theme.get("cards", [])
+    if not isinstance(cards, list):
+        raise ConfigValidationError(f"Setting 'theme.cards' must be a list, got {cards!r}.")
+
+    normalized_cards = [_validate_theme_card(card, index) for index, card in enumerate(cards)]
+
+    return {"id": theme_id, "name": name, "cards": normalized_cards, "mascotVariant": mascot_variant}
+
+
 def validate_config(data: dict) -> Dict[str, object]:
     """Validate and normalize a full settings dict, never mutating `data`.
 
@@ -274,6 +332,7 @@ def validate_config(data: dict) -> Dict[str, object]:
     normalized["refresh_interval_seconds"] = float(refresh)
 
     normalized["services"] = _validate_services(data)
+    normalized["theme"] = _validate_theme(data)
 
     return normalized
 
@@ -344,6 +403,12 @@ class _ConfigRequestHandler(BaseHTTPRequestHandler):
 
     server_version = "MascotaWebConfig/1.0"
 
+    _POST_ROUTES = {
+        "/api/config": "_handle_post_config",
+        "/api/rules": "_handle_post_rules",
+        "/api/theme": "_handle_post_theme",
+    }
+
     def log_message(self, format_str, *args):  # noqa: A002 - stdlib signature
         # Never spam stderr on every request; nothing here is a hint that
         # anything went wrong, so it is not worth wiring a real logger.
@@ -394,6 +459,9 @@ class _ConfigRequestHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/wsl":
             self._send_json(HTTPStatus.OK, wsl.wsl_status())
+            return
+        if path == "/api/theme":
+            self._send_json(HTTPStatus.OK, load_config(self.server.config_path).get("theme", DEFAULT_SETTINGS["theme"]))
             return
 
         asset = STATIC_ASSETS.get(path)
@@ -451,7 +519,7 @@ class _ConfigRequestHandler(BaseHTTPRequestHandler):
             return
 
         path = urlparse(self.path).path
-        if path not in ("/api/config", "/api/rules"):
+        if path not in ("/api/config", "/api/rules", "/api/theme"):
             self._send_error_json(HTTPStatus.NOT_FOUND, f"No such resource: {path}")
             return
 
@@ -468,10 +536,8 @@ class _ConfigRequestHandler(BaseHTTPRequestHandler):
             self._send_error_json(HTTPStatus.BAD_REQUEST, f"Invalid JSON body: {exc}")
             return
 
-        if path == "/api/config":
-            self._handle_post_config(payload)
-        else:
-            self._handle_post_rules(payload)
+        handler_name = self._POST_ROUTES[path]
+        getattr(self, handler_name)(payload)
 
     def _handle_post_config(self, payload) -> None:
         if not isinstance(payload, dict):
@@ -506,6 +572,20 @@ class _ConfigRequestHandler(BaseHTTPRequestHandler):
             self._send_error_json(HTTPStatus.INTERNAL_SERVER_ERROR, f"Could not save rules: {exc}")
             return
         self._send_json(HTTPStatus.OK, payload)
+
+    def _handle_post_theme(self, payload) -> None:
+        if not isinstance(payload, dict):
+            self._send_error_json(HTTPStatus.BAD_REQUEST, "Theme body must be a JSON object.")
+            return
+        try:
+            saved = save_config(self.server.config_path, {"theme": payload})
+        except ConfigValidationError as exc:
+            self._send_error_json(HTTPStatus.BAD_REQUEST, str(exc))
+            return
+        except OSError as exc:
+            self._send_error_json(HTTPStatus.INTERNAL_SERVER_ERROR, f"Could not save theme: {exc}")
+            return
+        self._send_json(HTTPStatus.OK, saved.get("theme", DEFAULT_SETTINGS["theme"]))
 
 
 class _ConfigHTTPServer(ThreadingHTTPServer):
