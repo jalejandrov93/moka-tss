@@ -5,6 +5,9 @@ import { listen } from "@tauri-apps/api/event";
 import type { StatusSnapshot, RulesPayload, Rule, ServiceStatus, WslStatus, AppConfig } from "./types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { RuleList, RuleForm, RulePreviewCard } from "@/components/rules";
+import { type RuleConfig, DEFAULT_MOODS } from "@/lib/rules";
 
 const DEFAULT_PORT = 8765;
 let serverPort = DEFAULT_PORT;
@@ -30,6 +33,9 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 export let sliderBrightness = 100;
 export let brightnessStatus: "idle" | "applied" | "error" = "idle";
 export let brightnessStatusText = "";
+export let editingRule: RuleConfig | null = null;
+export let originalRuleId: string | null = null;
+export let rulesSaveError: string | null = null;
 
 function getRoot(): Root | null {
   if (root) return root;
@@ -852,6 +858,271 @@ function renderTransmisionCard(): React.ReactElement {
   );
 }
 
+export function handleEditRule(rule: RuleConfig): void {
+  editingRule = { ...rule };
+  originalRuleId = rule.id;
+  rulesSaveError = null;
+  renderApp();
+}
+
+export function handleCreateRule(): void {
+  const fallbackMood = currentRules?.moods?.[0] ?? DEFAULT_MOODS[0];
+  editingRule = {
+    id: "",
+    metric: "",
+    op: ">=",
+    value: 0,
+    mood: fallbackMood,
+    priority: 0,
+  };
+  originalRuleId = null;
+  rulesSaveError = null;
+  renderApp();
+}
+
+export function handleCancelEdit(): void {
+  editingRule = null;
+  originalRuleId = null;
+  rulesSaveError = null;
+  renderApp();
+}
+
+export async function saveRules(payload: RulesPayload): Promise<boolean> {
+  try {
+    const response = await fetch(`${baseUrl()}/api/rules`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Origin": baseUrl(),
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      let message = `HTTP ${response.status}`;
+      try {
+        const errorData = (await response.json()) as { error?: string };
+        if (errorData && typeof errorData.error === "string" && errorData.error.trim() !== "") {
+          message = errorData.error;
+        }
+      } catch {
+        // fallback to status code
+      }
+      rulesSaveError = message;
+      renderApp();
+      return false;
+    }
+
+    rulesSaveError = null;
+    await fetchRules();
+    renderApp();
+    return true;
+  } catch (err) {
+    rulesSaveError = err instanceof Error ? err.message : String(err);
+    renderApp();
+    return false;
+  }
+}
+
+export async function handleSaveRule(rule: RuleConfig): Promise<void> {
+  if (!currentRules) return;
+
+  const currentRulesList = Array.isArray(currentRules.rules) ? currentRules.rules : [];
+  const ruleAsRule: Rule = {
+    id: rule.id,
+    metric: rule.metric,
+    op: rule.op,
+    value: rule.value,
+    mood: rule.mood,
+    priority: typeof rule.priority === "number" ? rule.priority : 0,
+    ...(rule.for !== undefined ? { for: rule.for } : {}),
+    ...(rule.for_seconds !== undefined ? { for_seconds: rule.for_seconds } : {}),
+    ...(rule.release !== undefined ? { release: rule.release } : {}),
+    ...(rule.release_for !== undefined ? { release_for: rule.release_for } : {}),
+  };
+
+  let updatedRules: Rule[];
+  if (originalRuleId) {
+    const exists = currentRulesList.some((r) => r.id === originalRuleId);
+    if (exists) {
+      updatedRules = currentRulesList.map((r) => (r.id === originalRuleId ? ruleAsRule : r));
+    } else {
+      updatedRules = [...currentRulesList, ruleAsRule];
+    }
+  } else {
+    const exists = currentRulesList.some((r) => r.id === rule.id);
+    if (exists) {
+      updatedRules = currentRulesList.map((r) => (r.id === rule.id ? ruleAsRule : r));
+    } else {
+      updatedRules = [...currentRulesList, ruleAsRule];
+    }
+  }
+
+  const payload: RulesPayload = {
+    moods: currentRules.moods ?? [...DEFAULT_MOODS],
+    default_mood: currentRules.default_mood ?? null,
+    rules: updatedRules,
+  };
+
+  const success = await saveRules(payload);
+  if (success) {
+    editingRule = null;
+    originalRuleId = null;
+    renderApp();
+  }
+}
+
+export async function handleDeleteRule(id: string): Promise<void> {
+  const ok = window.confirm(`¿Eliminar regla "${id}"?`);
+  if (!ok) return;
+
+  if (!currentRules) return;
+
+  const currentRulesList = Array.isArray(currentRules.rules) ? currentRules.rules : [];
+  const updatedRules = currentRulesList.filter((r) => r.id !== id);
+
+  const payload: RulesPayload = {
+    moods: currentRules.moods ?? [...DEFAULT_MOODS],
+    default_mood: currentRules.default_mood ?? null,
+    rules: updatedRules,
+  };
+
+  const success = await saveRules(payload);
+  if (success && editingRule?.id === id) {
+    editingRule = null;
+    originalRuleId = null;
+    renderApp();
+  }
+}
+
+export function renderReglasCard(): React.ReactElement {
+  if (rulesError) {
+    return React.createElement(
+      Card,
+      { className: "w-full max-w-[96rem] bg-slate-950 text-slate-50 border-red-900 shadow-xl" },
+      React.createElement(
+        CardHeader,
+        null,
+        React.createElement(
+          CardTitle,
+          { className: "text-xl font-bold tracking-tight text-red-400" },
+          "Reglas"
+        )
+      ),
+      React.createElement(
+        CardContent,
+        { className: "space-y-2 font-mono text-sm text-red-400" },
+        React.createElement(
+          "p",
+          null,
+          `Error fetching rules: ${rulesError instanceof Error ? rulesError.message : String(rulesError)}`
+        )
+      )
+    );
+  }
+
+  if (!currentRules) {
+    return React.createElement(
+      Card,
+      { className: "w-full max-w-[96rem] bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+      React.createElement(
+        CardHeader,
+        null,
+        React.createElement(
+          CardTitle,
+          { className: "text-xl font-bold tracking-tight text-slate-50" },
+          "Reglas"
+        )
+      ),
+      React.createElement(
+        CardContent,
+        { className: "space-y-4 font-mono text-sm text-slate-400" },
+        "Cargando reglas..."
+      )
+    );
+  }
+
+  const rulesList = Array.isArray(currentRules.rules) ? currentRules.rules : [];
+  const moodsList = Array.isArray(currentRules.moods) && currentRules.moods.length > 0
+    ? currentRules.moods
+    : [...DEFAULT_MOODS];
+
+  return React.createElement(
+    Card,
+    { className: "w-full max-w-[96rem] bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+    React.createElement(
+      CardHeader,
+      { className: "flex flex-row items-center justify-between pb-4 border-b border-slate-800" },
+      React.createElement(
+        "div",
+        null,
+        React.createElement(
+          CardTitle,
+          { className: "text-xl font-bold tracking-tight text-slate-50" },
+          "Reglas"
+        ),
+        React.createElement(
+          "p",
+          { className: "text-xs text-slate-400 mt-1" },
+          `Configuración y evaluación de alertas (${rulesList.length} reglas)`
+        )
+      ),
+      React.createElement(
+        Button,
+        {
+          size: "sm",
+          onClick: handleCreateRule,
+          className: "bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-3 py-1.5",
+        },
+        "+ Nueva Regla"
+      )
+    ),
+    React.createElement(
+      CardContent,
+      { className: "pt-6 space-y-6" },
+      rulesSaveError
+        ? React.createElement(
+            "div",
+            {
+              className: "p-3.5 rounded-lg border border-red-600/80 bg-red-950/60 text-red-200 text-xs font-mono space-y-1 shadow-sm",
+            },
+            React.createElement(
+              "p",
+              { className: "font-bold text-red-100 font-sans" },
+              "Error al guardar reglas en el servidor:"
+            ),
+            React.createElement("p", null, rulesSaveError)
+          )
+        : null,
+      editingRule !== null
+        ? React.createElement(
+            "div",
+            { className: "p-4 rounded-lg bg-slate-900/60 border border-slate-800 flex justify-center" },
+            React.createElement(RuleForm, {
+              initial: editingRule,
+              moods: moodsList,
+              onSubmit: handleSaveRule,
+              onCancel: handleCancelEdit,
+            })
+          )
+        : null,
+      React.createElement(
+        "div",
+        { className: "grid grid-cols-1 lg:grid-cols-2 gap-6 items-start" },
+        React.createElement(RuleList, {
+          rules: rulesList,
+          onEdit: handleEditRule,
+          onDelete: handleDeleteRule,
+        }),
+        React.createElement(RulePreviewCard, {
+          rules: rulesList as RuleConfig[],
+          moods: moodsList,
+        })
+      )
+    )
+  );
+}
+
 function renderApp(): void {
   const currentRoot = getRoot();
   if (!currentRoot) return;
@@ -859,7 +1130,7 @@ function renderApp(): void {
   currentRoot.render(
     React.createElement(
       "div",
-      { className: "min-h-screen bg-slate-950 text-slate-50 p-6 flex justify-center items-start" },
+      { className: "min-h-screen bg-slate-950 text-slate-50 p-6 flex flex-col items-center gap-6" },
       React.createElement(
         "div",
         { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 w-full max-w-[96rem]" },
@@ -869,7 +1140,8 @@ function renderApp(): void {
         renderSistemaCard(),
         renderWslCard(),
         renderTransmisionCard()
-      )
+      ),
+      renderReglasCard()
     )
   );
 }
