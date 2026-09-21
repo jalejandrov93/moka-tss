@@ -21,6 +21,11 @@ export interface Transmission {
   last_kind: string;
 }
 
+export interface RuleInfo {
+  winning_rule_id: string | null;
+  fired: string[];
+}
+
 export interface StatusSnapshot {
   tick: number;
   running: boolean;
@@ -33,6 +38,7 @@ export interface StatusSnapshot {
   system?: SystemTelemetry;
   screen?: ScreenInfo;
   transmission?: Transmission | null;
+  rule?: RuleInfo;
 }
 
 export interface Rule {
