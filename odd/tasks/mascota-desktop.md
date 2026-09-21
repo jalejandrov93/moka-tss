@@ -69,3 +69,7 @@ Separar `MokaApp` en Core testeable + Host lifecycle + UI futura, dejando listo 
 - [ ] MD-4.5 Info pantalla en tarjeta (job df282dcd, agy, md-45-screenctl).
 - [ ] MD-5.2 Tarjeta estado mascota (job eea2ef01, opencode, md-52-mascot).
 - [ ] MD-6.1 Motor reglas TS (job 47280ccf, agy, md-61-rulets).
+- [x] MD-4.5 Info pantalla (job df282dcd, agy). Merge `dff5fa2`. Fila orientación/refresh, verificado tsc.
+- [x] MD-5.2 Tarjeta Mascota Detalle (job eea2ef01, opencode). Merge `c9914ca`. Mood + triggered-by + fired badges.
+- [x] MD-6.1 Motor reglas TS (job 47280ccf, agy). Merge `41afc7f`. lib/rules.ts: validateRule + evaluateRules con tie-break idéntico (sin histéresis, para Preview).
+- Gate fusionado: tsc + build OK en árbol combinado (268KB).
