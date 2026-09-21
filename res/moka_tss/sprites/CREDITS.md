@@ -71,3 +71,35 @@ la de tumbado, la única del set que transmite descanso. Tampoco existe una pose
 de "ansiedad", así que la progresión atenta -> agobiada -> alarmada se construye
 cambiando de pose (trasera -> frente erizado -> perfil espejado) y sumando
 teñido y velocidad.
+
+---
+
+## Variante: Husky (CC0)
+
+### Fuente
+
+- **Obra**: "Dog" (husky sprite sheet)
+- **Autor**: inmenus
+- **URL**: https://inmenus.itch.io/dog
+- **Licencia**: CC0 (Public Domain) — sin restricciones, apto para uso comercial
+  y derivados sin atribución obligatoria. Se incluye atribución por cortesía.
+
+### Archivos versionados en `husky/`
+
+Catorce recortes de 60x38 px de la hoja `Dog_medium.png` (360x228, grilla 6x6).
+La hoja original contiene 6 animaciones de 6 cuadros cada una; se seleccionaron
+los cuadros representativos para cada ánimo:
+
+| Archivo | Fila en hoja | Animación de origen | Cuadros usados | Ánimo mapeado |
+| --- | --- | --- | --- | --- |
+| `sleep_a.png`, `sleep_b.png` | 1 (0-indexed) | Idle Sit | 0, 1 | `durmiendo` |
+| `calma_a/b/c.png` | 0 | Idle Stand | 0, 1, 2 | `calma` |
+| `atenta_a/b/c.png` | 3 | Walk | 0, 1, 2 | `atenta` |
+| `alert_a/b/c.png` | 2 | Sit Transition | 0, 1, 2 | `agobiada` |
+| `alarm_a/b/c.png` | 5 | Bark | 0, 1, 2 | `alarmada` (usa a/b; c reservado) |
+
+La fila 4 (Run) no se usa directamente: el ánimo `error` se genera en código
+desde los cuadros de `calma` con efecto glitch (ver `mascot.py:_glitch_frame`).
+
+Todos los cuadros se escalan a 96x96 en `MascotSprites.load` con
+`Image.NEAREST` igual que la variante base.
