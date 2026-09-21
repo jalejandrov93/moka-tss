@@ -150,6 +150,7 @@ class MokaApp:
         self.codexbar_interval = codexbar_interval
         self.brightness = brightness
         self.orientation = orientation
+        self.mascot_variant = "default"
         self.hidden_providers = hidden_providers
         self._clock = clock
         self._sleep_fn = sleep_fn
@@ -395,6 +396,24 @@ class MokaApp:
                     self.screen.set_brightness(int(v))
                 except Exception as exc:
                     logger.warning("Failed to apply brightness %s to screen: %s", v, exc)
+        self._apply_mascot_variant(settings)
+
+    def _apply_mascot_variant(self, settings: dict) -> None:
+        """Reload mascot sprites when the saved theme selects a new variant."""
+        theme = settings.get("theme")
+        variant = theme.get("mascotVariant") if isinstance(theme, dict) else None
+        if not isinstance(variant, str) or not variant:
+            return
+        if variant == getattr(self, "mascot_variant", "default"):
+            return
+        try:
+            from library.moka_tss.mascot import MascotSprites as RealMascotSprites
+            sprites = RealMascotSprites.load_variant(variant)
+        except Exception as exc:
+            logger.warning("Failed to load mascot variant %r: %s", variant, exc)
+            return
+        self.sprites = sprites
+        self.mascot_variant = variant
 
     def start_config_server(self) -> Optional[int]:
         """Start the loopback config panel if it is not already serving.

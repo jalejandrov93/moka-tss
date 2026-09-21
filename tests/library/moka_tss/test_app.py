@@ -437,3 +437,43 @@ class ApplySavedSettingsTests(unittest.TestCase):
                 status_provider=app._get_status,
                 on_config_saved=app._apply_saved_settings,
             )
+
+
+class ApplyMascotVariantTests(unittest.TestCase):
+    """Tests for live mascot variant switching via saved theme."""
+
+    def _app(self):
+        return MokaApp(serial_port=None, screen=None, tray_enabled=False, simulate=True)
+
+    def test_variant_change_reloads_sprites(self):
+        from unittest.mock import patch
+        app = self._app()
+        new_sprites = MagicMock()
+        with patch("library.moka_tss.mascot.MascotSprites.load_variant",
+                   return_value=new_sprites) as loader:
+            app._apply_saved_settings({"theme": {"mascotVariant": "husky"}})
+            loader.assert_called_once_with("husky")
+        self.assertIs(app.sprites, new_sprites)
+        self.assertEqual(app.mascot_variant, "husky")
+
+    def test_same_variant_does_not_reload(self):
+        from unittest.mock import patch
+        app = self._app()
+        with patch("library.moka_tss.mascot.MascotSprites.load_variant") as loader:
+            app._apply_saved_settings({"theme": {"mascotVariant": "default"}})
+            loader.assert_not_called()
+
+    def test_invalid_variant_keeps_current_sprites(self):
+        from unittest.mock import patch
+        app = self._app()
+        current = app.sprites
+        with patch("library.moka_tss.mascot.MascotSprites.load_variant",
+                   side_effect=FileNotFoundError("nope")):
+            app._apply_saved_settings({"theme": {"mascotVariant": "../evil"}})
+        self.assertIs(app.sprites, current)
+        self.assertEqual(app.mascot_variant, "default")
+
+    def test_missing_theme_is_ignored(self):
+        app = self._app()
+        app._apply_saved_settings({"brightness": 80})
+        self.assertEqual(app.mascot_variant, "default")
