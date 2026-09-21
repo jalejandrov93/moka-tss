@@ -83,3 +83,4 @@ Separar `MokaApp` en Core testeable + Host lifecycle + UI futura, dejando listo 
 - [x] MD-6.5 Scrollbar dark (job 38d86044, agy). Merge. Solo index.css.
 - [x] MD-11.1 Toggles tarjetas en localStorage (job 33b17cdb, opencode). Merge `c4a7246`. lib/dashboard.ts + barra Personalizar.
 - [x] MD-11.2 Diseño temas (agy recon): modelo Theme/CardConfig, persistencia backend, pipeline imagen ≤2MB→WebP, slices 11.1..11.6. Nota: toggles quedaron en localStorage como v1; el backend llega en MD-11.x persistencia.
+- [x] MD-11.3 Tema en backend (opencode murió por timeout con trabajo parcial; padre lo completó: reubicó docs, reformateó 18 líneas, extrajo _validate_theme_card, dispatch _POST_ROUTES por C901). Commit `f0e8c5a` mergeado. Gate: 74 webconfig OK, suite solo 8 Rev C, lint CI 0.
