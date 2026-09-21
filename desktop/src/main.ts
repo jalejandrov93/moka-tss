@@ -51,19 +51,19 @@ function renderServiciosCard(): React.ReactElement {
   if (servicesError) {
     return React.createElement(
       Card,
-      { className: "w-full max-w-md bg-slate-950 text-slate-50 border-red-900 shadow-xl" },
+      { className: "w-full min-w-0 overflow-hidden bg-slate-950 text-slate-50 border-red-900 shadow-xl" },
       React.createElement(
         CardHeader,
         null,
         React.createElement(
           CardTitle,
-          { className: "text-xl font-bold tracking-tight text-red-400" },
+          { className: "text-xl font-bold tracking-tight text-red-400 truncate" },
           "Servicios"
         )
       ),
       React.createElement(
         CardContent,
-        { className: "space-y-2 font-mono text-sm text-red-400" },
+        { className: "space-y-2 font-mono text-sm text-red-400 break-words" },
         React.createElement(
           "p",
           null,
@@ -76,13 +76,13 @@ function renderServiciosCard(): React.ReactElement {
   if (!currentServices) {
     return React.createElement(
       Card,
-      { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+      { className: "w-full min-w-0 overflow-hidden bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
       React.createElement(
         CardHeader,
         null,
         React.createElement(
           CardTitle,
-          { className: "text-xl font-bold tracking-tight text-slate-50" },
+          { className: "text-xl font-bold tracking-tight text-slate-50 truncate" },
           "Servicios"
         )
       ),
@@ -98,25 +98,25 @@ function renderServiciosCard(): React.ReactElement {
 
   return React.createElement(
     Card,
-    { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+    { className: "w-full min-w-0 overflow-hidden bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
     React.createElement(
       CardHeader,
       null,
       React.createElement(
         CardTitle,
-        { className: "text-xl font-bold tracking-tight text-slate-50" },
+        { className: "text-xl font-bold tracking-tight text-slate-50 truncate" },
         "Servicios"
       )
     ),
     React.createElement(
       CardContent,
-      { className: "space-y-4" },
+      { className: "space-y-4 min-w-0" },
       React.createElement(
         "div",
-        { className: "space-y-2" },
+        { className: "space-y-2 min-w-0" },
         React.createElement(
           "div",
-          { className: "text-xs font-semibold text-slate-400 uppercase tracking-wider" },
+          { className: "text-xs font-semibold text-slate-400 uppercase tracking-wider truncate" },
           `Servicios (${servicesList.length})`
         ),
         React.createElement(
@@ -137,17 +137,17 @@ function renderServiciosCard(): React.ReactElement {
                   "div",
                   {
                     key: `${svc.name}-${svc.port}`,
-                    className: "py-1.5 px-2.5 rounded bg-slate-900 border border-slate-800 text-slate-300 flex justify-between items-center",
+                    className: "py-1.5 px-2.5 rounded bg-slate-900 border border-slate-800 text-slate-300 flex justify-between items-center gap-2 min-w-0",
                   },
                   React.createElement(
                     "div",
-                    { className: "flex items-center gap-1.5" },
-                    React.createElement("span", { className: "font-semibold text-slate-200" }, svc.name),
-                    React.createElement("span", { className: "text-slate-500 text-xs" }, `:${svc.port}`)
+                    { className: "flex items-center gap-1.5 min-w-0 overflow-hidden" },
+                    React.createElement("span", { className: "font-semibold text-slate-200 truncate" }, svc.name),
+                    React.createElement("span", { className: "text-slate-500 text-xs shrink-0" }, `:${svc.port}`)
                   ),
                   React.createElement(
                     Badge,
-                    { variant: svc.reachable ? "success" : "destructive" },
+                    { variant: svc.reachable ? "success" : "destructive", className: "shrink-0" },
                     latencyDisplay
                   )
                 );
@@ -162,19 +162,19 @@ function renderMascotaCard(): React.ReactElement {
   if (rulesError) {
     return React.createElement(
       Card,
-      { className: "w-full max-w-md bg-slate-950 text-slate-50 border-red-900 shadow-xl" },
+      { className: "w-full min-w-0 overflow-hidden bg-slate-950 text-slate-50 border-red-900 shadow-xl" },
       React.createElement(
         CardHeader,
         null,
         React.createElement(
           CardTitle,
-          { className: "text-xl font-bold tracking-tight text-red-400" },
+          { className: "text-xl font-bold tracking-tight text-red-400 truncate" },
           "Mascota"
         )
       ),
       React.createElement(
         CardContent,
-        { className: "space-y-2 font-mono text-sm text-red-400" },
+        { className: "space-y-2 font-mono text-sm text-red-400 break-words" },
         React.createElement(
           "p",
           null,
@@ -187,13 +187,13 @@ function renderMascotaCard(): React.ReactElement {
   if (!currentRules) {
     return React.createElement(
       Card,
-      { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+      { className: "w-full min-w-0 overflow-hidden bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
       React.createElement(
         CardHeader,
         null,
         React.createElement(
           CardTitle,
-          { className: "text-xl font-bold tracking-tight text-slate-50" },
+          { className: "text-xl font-bold tracking-tight text-slate-50 truncate" },
           "Mascota"
         )
       ),
@@ -211,42 +211,42 @@ function renderMascotaCard(): React.ReactElement {
 
   return React.createElement(
     Card,
-    { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+    { className: "w-full min-w-0 overflow-hidden bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
     React.createElement(
       CardHeader,
       null,
       React.createElement(
         CardTitle,
-        { className: "text-xl font-bold tracking-tight text-slate-50" },
+        { className: "text-xl font-bold tracking-tight text-slate-50 truncate" },
         "Mascota"
       )
     ),
     React.createElement(
       CardContent,
-      { className: "space-y-4" },
+      { className: "space-y-4 min-w-0" },
       React.createElement(
         "div",
-        { className: "flex items-center justify-between pb-3 border-b border-slate-800" },
+        { className: "flex items-center justify-between pb-3 border-b border-slate-800 gap-2 min-w-0" },
         React.createElement(
           "span",
-          { className: "text-sm text-slate-400 font-medium" },
+          { className: "text-sm text-slate-400 font-medium truncate" },
           "Mood actual"
         ),
         React.createElement(
           Badge,
           {
             variant: "default",
-            className: "text-base font-bold px-3 py-1 uppercase tracking-wide",
+            className: "text-base font-bold px-3 py-1 uppercase tracking-wide shrink-0 truncate max-w-[60%]",
           },
           moodDisplay
         )
       ),
       React.createElement(
         "div",
-        { className: "space-y-2" },
+        { className: "space-y-2 min-w-0" },
         React.createElement(
           "div",
-          { className: "text-xs font-semibold text-slate-400 uppercase tracking-wider" },
+          { className: "text-xs font-semibold text-slate-400 uppercase tracking-wider truncate" },
           `Reglas (${rulesList.length})`
         ),
         React.createElement(
@@ -263,9 +263,10 @@ function renderMascotaCard(): React.ReactElement {
                   "div",
                   {
                     key: rule.id,
-                    className: "py-1.5 px-2.5 rounded bg-slate-900 border border-slate-800 text-slate-300 flex justify-between items-center",
+                    className: "py-1.5 px-2.5 rounded bg-slate-900 border border-slate-800 text-slate-300 flex justify-between items-center gap-2 min-w-0",
                   },
-                  `${rule.id} → ${rule.mood}`
+                  React.createElement("span", { className: "font-semibold text-slate-200 truncate" }, rule.id),
+                  React.createElement("span", { className: "text-slate-400 shrink-0" }, `→ ${rule.mood}`)
                 )
               )
         )
@@ -278,19 +279,19 @@ function renderMascotaDetailCard(): React.ReactElement {
   if (statusError) {
     return React.createElement(
       Card,
-      { className: "w-full max-w-md bg-slate-950 text-slate-50 border-red-900 shadow-xl" },
+      { className: "w-full min-w-0 overflow-hidden bg-slate-950 text-slate-50 border-red-900 shadow-xl" },
       React.createElement(
         CardHeader,
         null,
         React.createElement(
           CardTitle,
-          { className: "text-xl font-bold tracking-tight text-red-400" },
+          { className: "text-xl font-bold tracking-tight text-red-400 truncate" },
           "Mascota Detalle"
         )
       ),
       React.createElement(
         CardContent,
-        { className: "space-y-2 font-mono text-sm text-red-400" },
+        { className: "space-y-2 font-mono text-sm text-red-400 break-words" },
         React.createElement(
           "p",
           null,
@@ -303,13 +304,13 @@ function renderMascotaDetailCard(): React.ReactElement {
   if (!currentStatus) {
     return React.createElement(
       Card,
-      { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+      { className: "w-full min-w-0 overflow-hidden bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
       React.createElement(
         CardHeader,
         null,
         React.createElement(
           CardTitle,
-          { className: "text-xl font-bold tracking-tight text-slate-50" },
+          { className: "text-xl font-bold tracking-tight text-slate-50 truncate" },
           "Mascota Detalle"
         )
       ),
@@ -328,53 +329,53 @@ function renderMascotaDetailCard(): React.ReactElement {
 
   return React.createElement(
     Card,
-    { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+    { className: "w-full min-w-0 overflow-hidden bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
     React.createElement(
       CardHeader,
       null,
       React.createElement(
         CardTitle,
-        { className: "text-xl font-bold tracking-tight text-slate-50" },
+        { className: "text-xl font-bold tracking-tight text-slate-50 truncate" },
         "Mascota Detalle"
       )
     ),
     React.createElement(
       CardContent,
-      { className: "space-y-4" },
+      { className: "space-y-4 min-w-0" },
       React.createElement(
         "div",
-        { className: "text-center py-4" },
+        { className: "text-center py-4 min-w-0 overflow-hidden" },
         React.createElement(
           "span",
-          { className: "text-5xl font-bold uppercase tracking-wider text-slate-100" },
+          { className: "text-5xl font-bold uppercase tracking-wider text-slate-100 truncate block break-words" },
           String(mood).toUpperCase()
         )
       ),
       React.createElement(
         "div",
-        { className: "pt-3 border-t border-slate-800" },
+        { className: "pt-3 border-t border-slate-800 min-w-0" },
         React.createElement(
           "div",
-          { className: "text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2" },
+          { className: "text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 truncate" },
           "Triggered by"
         ),
         React.createElement(
           Badge,
-          { variant: "default", className: "text-base font-medium px-3 py-1.5" },
+          { variant: "default", className: "text-base font-medium px-3 py-1.5 max-w-full truncate inline-block" },
           winningRuleId
         )
       ),
       React.createElement(
         "div",
-        { className: "pt-3 border-t border-slate-800" },
+        { className: "pt-3 border-t border-slate-800 min-w-0" },
         React.createElement(
           "div",
-          { className: "text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2" },
+          { className: "text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 truncate" },
           `Reglas activas (${fired.length})`
         ),
         React.createElement(
           "div",
-          { className: "flex flex-wrap gap-1.5" },
+          { className: "max-h-36 overflow-y-auto flex flex-wrap gap-1.5 pr-1" },
           fired.length === 0
             ? React.createElement(
                 "span",
@@ -384,7 +385,7 @@ function renderMascotaDetailCard(): React.ReactElement {
             : fired.map((id: string) =>
                 React.createElement(
                   Badge,
-                  { key: id, variant: "secondary", className: "text-xs px-2 py-0.5" },
+                  { key: id, variant: "secondary", className: "text-xs px-2 py-0.5 truncate max-w-full" },
                   id
                 )
               )
@@ -412,12 +413,12 @@ function renderMetricBar(label: string, value: number | null | undefined): React
 
   return React.createElement(
     "div",
-    { className: "space-y-1.5" },
+    { className: "space-y-1.5 min-w-0" },
     React.createElement(
       "div",
-      { className: "flex justify-between text-xs font-mono text-slate-300" },
-      React.createElement("span", { className: "font-semibold text-slate-400 uppercase tracking-wider" }, label),
-      React.createElement("span", null, displayVal)
+      { className: "flex justify-between text-xs font-mono text-slate-300 gap-2 min-w-0" },
+      React.createElement("span", { className: "font-semibold text-slate-400 uppercase tracking-wider truncate" }, label),
+      React.createElement("span", { className: "shrink-0" }, displayVal)
     ),
     React.createElement(
       "div",
@@ -434,19 +435,19 @@ function renderSistemaCard(): React.ReactElement {
   if (statusError) {
     return React.createElement(
       Card,
-      { className: "w-full max-w-md bg-slate-950 text-slate-50 border-red-900 shadow-xl" },
+      { className: "w-full min-w-0 overflow-hidden bg-slate-950 text-slate-50 border-red-900 shadow-xl" },
       React.createElement(
         CardHeader,
         null,
         React.createElement(
           CardTitle,
-          { className: "text-xl font-bold tracking-tight text-red-400" },
+          { className: "text-xl font-bold tracking-tight text-red-400 truncate" },
           "Sistema"
         )
       ),
       React.createElement(
         CardContent,
-        { className: "space-y-2 font-mono text-sm text-red-400" },
+        { className: "space-y-2 font-mono text-sm text-red-400 break-words" },
         React.createElement(
           "p",
           null,
@@ -459,13 +460,13 @@ function renderSistemaCard(): React.ReactElement {
   if (!currentStatus) {
     return React.createElement(
       Card,
-      { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+      { className: "w-full min-w-0 overflow-hidden bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
       React.createElement(
         CardHeader,
         null,
         React.createElement(
           CardTitle,
-          { className: "text-xl font-bold tracking-tight text-slate-50" },
+          { className: "text-xl font-bold tracking-tight text-slate-50 truncate" },
           "Sistema"
         )
       ),
@@ -511,70 +512,70 @@ function renderSistemaCard(): React.ReactElement {
 
   return React.createElement(
     Card,
-    { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+    { className: "w-full min-w-0 overflow-hidden bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
     React.createElement(
       CardHeader,
       null,
       React.createElement(
         CardTitle,
-        { className: "text-xl font-bold tracking-tight text-slate-50" },
+        { className: "text-xl font-bold tracking-tight text-slate-50 truncate" },
         "Sistema"
       )
     ),
     React.createElement(
       CardContent,
-      { className: "space-y-4" },
+      { className: "space-y-4 min-w-0" },
       React.createElement(
         "div",
-        { className: "space-y-3" },
+        { className: "space-y-3 min-w-0" },
         renderMetricBar("CPU", system?.cpu),
         renderMetricBar("RAM", system?.ram),
         renderMetricBar("GPU", system?.gpu)
       ),
       React.createElement(
         "div",
-        { className: "flex items-center justify-between pt-3 border-t border-slate-800 text-sm" },
+        { className: "flex items-center justify-between pt-3 border-t border-slate-800 text-sm gap-2 min-w-0" },
         React.createElement(
           "div",
-          { className: "flex items-center gap-2" },
-          React.createElement("span", { className: "text-slate-400 font-medium" }, "Turing"),
+          { className: "flex items-center gap-2 min-w-0" },
+          React.createElement("span", { className: "text-slate-400 font-medium shrink-0" }, "Turing"),
           React.createElement(
             Badge,
-            { variant: turingBadgeVariant },
+            { variant: turingBadgeVariant, className: "shrink-0" },
             turingStateText
           )
         )
       ),
       React.createElement(
         "div",
-        { className: "flex items-center justify-between text-sm" },
-        React.createElement("span", { className: "text-slate-400 font-medium" }, "Pantalla"),
+        { className: "flex items-center justify-between text-sm gap-2 min-w-0" },
+        React.createElement("span", { className: "text-slate-400 font-medium shrink-0" }, "Pantalla"),
         React.createElement(
           "span",
-          { className: "font-mono text-xs text-slate-300" },
+          { className: "font-mono text-xs text-slate-300 truncate text-right", title: `${orientationDisplay} · ${refreshDisplay} · Brillo: ${brightnessDisplay}` },
           `${orientationDisplay} · ${refreshDisplay} · Brillo: ${brightnessDisplay}`
         )
       ),
       React.createElement(
         "div",
-        { className: "space-y-1.5 pt-2 border-t border-slate-800" },
+        { className: "space-y-1.5 pt-2 border-t border-slate-800 min-w-0" },
         React.createElement(
           "div",
-          { className: "flex items-center justify-between text-xs font-mono" },
+          { className: "flex items-center justify-between text-xs font-mono gap-2 min-w-0" },
           React.createElement(
             "label",
-            { htmlFor: "brightness-slider", className: "font-semibold text-slate-400 uppercase tracking-wider" },
+            { htmlFor: "brightness-slider", className: "font-semibold text-slate-400 uppercase tracking-wider truncate" },
             "Control de brillo"
           ),
           React.createElement(
             "div",
-            { className: "flex items-center gap-2" },
+            { className: "flex items-center gap-2 shrink-0" },
             brightnessStatusText
               ? React.createElement(
                   Badge,
                   {
                     variant: brightnessStatus === "applied" ? "success" : "destructive",
-                    className: "text-[10px] px-1.5 py-0 font-mono",
+                    className: "text-[10px] px-1.5 py-0 font-mono shrink-0",
                   },
                   brightnessStatusText
                 )
@@ -605,19 +606,19 @@ function renderWslCard(): React.ReactElement {
   if (wslError) {
     return React.createElement(
       Card,
-      { className: "w-full max-w-md bg-slate-950 text-slate-50 border-red-900 shadow-xl" },
+      { className: "w-full min-w-0 overflow-hidden bg-slate-950 text-slate-50 border-red-900 shadow-xl" },
       React.createElement(
         CardHeader,
         null,
         React.createElement(
           CardTitle,
-          { className: "text-xl font-bold tracking-tight text-red-400" },
+          { className: "text-xl font-bold tracking-tight text-red-400 truncate" },
           "WSL"
         )
       ),
       React.createElement(
         CardContent,
-        { className: "space-y-2 font-mono text-sm text-red-400" },
+        { className: "space-y-2 font-mono text-sm text-red-400 break-words" },
         React.createElement(
           "p",
           null,
@@ -630,13 +631,13 @@ function renderWslCard(): React.ReactElement {
   if (!currentWsl) {
     return React.createElement(
       Card,
-      { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+      { className: "w-full min-w-0 overflow-hidden bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
       React.createElement(
         CardHeader,
         null,
         React.createElement(
           CardTitle,
-          { className: "text-xl font-bold tracking-tight text-slate-50" },
+          { className: "text-xl font-bold tracking-tight text-slate-50 truncate" },
           "WSL"
         )
       ),
@@ -652,30 +653,30 @@ function renderWslCard(): React.ReactElement {
 
   return React.createElement(
     Card,
-    { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+    { className: "w-full min-w-0 overflow-hidden bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
     React.createElement(
       CardHeader,
-      { className: "flex flex-row items-center justify-between space-y-0" },
+      { className: "flex flex-row items-center justify-between space-y-0 gap-2 min-w-0" },
       React.createElement(
         CardTitle,
-        { className: "text-xl font-bold tracking-tight text-slate-50" },
+        { className: "text-xl font-bold tracking-tight text-slate-50 truncate" },
         "WSL"
       ),
       React.createElement(
         Badge,
-        { variant: currentWsl.available ? "success" : "destructive" },
+        { variant: currentWsl.available ? "success" : "destructive", className: "shrink-0" },
         currentWsl.available ? "Running" : "no disponible"
       )
     ),
     React.createElement(
       CardContent,
-      { className: "space-y-4" },
+      { className: "space-y-4 min-w-0" },
       React.createElement(
         "div",
-        { className: "space-y-2" },
+        { className: "space-y-2 min-w-0" },
         React.createElement(
           "div",
-          { className: "text-xs font-semibold text-slate-400 uppercase tracking-wider" },
+          { className: "text-xs font-semibold text-slate-400 uppercase tracking-wider truncate" },
           `Distros (${distrosList.length})`
         ),
         React.createElement(
@@ -692,9 +693,9 @@ function renderWslCard(): React.ReactElement {
                   "div",
                   {
                     key: distro,
-                    className: "py-1.5 px-2.5 rounded bg-slate-900 border border-slate-800 text-slate-300 flex justify-between items-center",
+                    className: "py-1.5 px-2.5 rounded bg-slate-900 border border-slate-800 text-slate-300 flex justify-between items-center gap-2 min-w-0",
                   },
-                  React.createElement("span", { className: "font-semibold text-slate-200" }, distro)
+                  React.createElement("span", { className: "font-semibold text-slate-200 truncate" }, distro)
                 )
               )
         )
@@ -707,19 +708,19 @@ function renderTransmisionCard(): React.ReactElement {
   if (statusError) {
     return React.createElement(
       Card,
-      { className: "w-full max-w-md bg-slate-950 text-slate-50 border-red-900 shadow-xl" },
+      { className: "w-full min-w-0 overflow-hidden bg-slate-950 text-slate-50 border-red-900 shadow-xl" },
       React.createElement(
         CardHeader,
         null,
         React.createElement(
           CardTitle,
-          { className: "text-xl font-bold tracking-tight text-red-400" },
+          { className: "text-xl font-bold tracking-tight text-red-400 truncate" },
           "Transmisión"
         )
       ),
       React.createElement(
         CardContent,
-        { className: "space-y-2 font-mono text-sm text-red-400" },
+        { className: "space-y-2 font-mono text-sm text-red-400 break-words" },
         React.createElement(
           "p",
           null,
@@ -732,13 +733,13 @@ function renderTransmisionCard(): React.ReactElement {
   if (!currentStatus) {
     return React.createElement(
       Card,
-      { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+      { className: "w-full min-w-0 overflow-hidden bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
       React.createElement(
         CardHeader,
         null,
         React.createElement(
           CardTitle,
-          { className: "text-xl font-bold tracking-tight text-slate-50" },
+          { className: "text-xl font-bold tracking-tight text-slate-50 truncate" },
           "Transmisión"
         )
       ),
@@ -755,24 +756,24 @@ function renderTransmisionCard(): React.ReactElement {
   if (!tx) {
     return React.createElement(
       Card,
-      { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+      { className: "w-full min-w-0 overflow-hidden bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
       React.createElement(
         CardHeader,
-        { className: "flex flex-row items-center justify-between space-y-0" },
+        { className: "flex flex-row items-center justify-between space-y-0 gap-2 min-w-0" },
         React.createElement(
           CardTitle,
-          { className: "text-xl font-bold tracking-tight text-slate-50" },
+          { className: "text-xl font-bold tracking-tight text-slate-50 truncate" },
           "Transmisión"
         ),
         React.createElement(
           Badge,
-          { variant: "secondary" },
+          { variant: "secondary", className: "shrink-0" },
           "sin datos"
         )
       ),
       React.createElement(
         CardContent,
-        { className: "space-y-4 font-mono text-sm text-slate-500 italic py-1" },
+        { className: "space-y-4 font-mono text-sm text-slate-500 italic py-1 break-words" },
         "sin datos"
       )
     );
@@ -787,72 +788,72 @@ function renderTransmisionCard(): React.ReactElement {
 
   return React.createElement(
     Card,
-    { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+    { className: "w-full min-w-0 overflow-hidden bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
     React.createElement(
       CardHeader,
-      { className: "flex flex-row items-center justify-between space-y-0" },
+      { className: "flex flex-row items-center justify-between space-y-0 gap-2 min-w-0" },
       React.createElement(
         CardTitle,
-        { className: "text-xl font-bold tracking-tight text-slate-50" },
+        { className: "text-xl font-bold tracking-tight text-slate-50 truncate" },
         "Transmisión"
       ),
       React.createElement(
         Badge,
-        { variant: "default" },
+        { variant: "default", className: "shrink-0" },
         `${tx.frames_total} frames`
       )
     ),
     React.createElement(
       CardContent,
-      { className: "space-y-4" },
+      { className: "space-y-4 min-w-0" },
       React.createElement(
         "div",
-        { className: "space-y-2" },
+        { className: "space-y-2 min-w-0" },
         React.createElement(
           "div",
-          { className: "space-y-1" },
+          { className: "space-y-1 min-w-0" },
           React.createElement(
             "div",
-            { className: "flex justify-between text-xs font-mono" },
-            React.createElement("span", { className: "font-semibold text-slate-400 uppercase tracking-wider" }, "Frames totales"),
-            React.createElement("span", { className: "text-slate-200 font-semibold" }, String(tx.frames_total))
+            { className: "flex justify-between text-xs font-mono gap-2 min-w-0" },
+            React.createElement("span", { className: "font-semibold text-slate-400 uppercase tracking-wider shrink-0" }, "Frames totales"),
+            React.createElement("span", { className: "text-slate-200 font-semibold truncate text-right" }, String(tx.frames_total))
           ),
           React.createElement(
             "div",
-            { className: "flex justify-between text-xs font-mono text-slate-400" },
-            React.createElement("span", null, "Full / Partial"),
-            React.createElement("span", null, `${tx.full_frames} full / ${tx.partial_frames} partial`)
+            { className: "flex justify-between text-xs font-mono text-slate-400 gap-2 min-w-0" },
+            React.createElement("span", { className: "shrink-0" }, "Full / Partial"),
+            React.createElement("span", { className: "truncate text-right" }, `${tx.full_frames} full / ${tx.partial_frames} partial`)
           )
         ),
         React.createElement(
           "div",
-          { className: "flex justify-between text-xs font-mono" },
-          React.createElement("span", { className: "font-semibold text-slate-400 uppercase tracking-wider" }, "Tiles enviados"),
-          React.createElement("span", { className: "text-slate-200 font-semibold" }, String(tx.tiles_sent_total))
+          { className: "flex justify-between text-xs font-mono gap-2 min-w-0" },
+          React.createElement("span", { className: "font-semibold text-slate-400 uppercase tracking-wider shrink-0" }, "Tiles enviados"),
+          React.createElement("span", { className: "text-slate-200 font-semibold truncate text-right" }, String(tx.tiles_sent_total))
         ),
         React.createElement(
           "div",
-          { className: "flex justify-between text-xs font-mono" },
-          React.createElement("span", { className: "font-semibold text-slate-400 uppercase tracking-wider" }, "KB/s aprox"),
-          React.createElement("span", { className: "text-slate-200 font-semibold" }, `${kbAprox} KB/s`)
+          { className: "flex justify-between text-xs font-mono gap-2 min-w-0" },
+          React.createElement("span", { className: "font-semibold text-slate-400 uppercase tracking-wider shrink-0" }, "KB/s aprox"),
+          React.createElement("span", { className: "text-slate-200 font-semibold truncate text-right" }, `${kbAprox} KB/s`)
         )
       ),
       React.createElement(
         "div",
-        { className: "flex items-center justify-between pt-3 border-t border-slate-800 text-sm" },
+        { className: "flex items-center justify-between pt-3 border-t border-slate-800 text-sm gap-2 min-w-0" },
         React.createElement(
           "div",
-          { className: "flex items-center gap-2" },
-          React.createElement("span", { className: "text-slate-400 font-medium" }, "Último envío"),
+          { className: "flex items-center gap-2 min-w-0" },
+          React.createElement("span", { className: "text-slate-400 font-medium shrink-0" }, "Último envío"),
           React.createElement(
             Badge,
-            { variant: tx.last_kind === "full" ? "default" : "secondary" },
+            { variant: tx.last_kind === "full" ? "default" : "secondary", className: "shrink-0" },
             tx.last_kind
           )
         ),
         React.createElement(
           "span",
-          { className: "font-mono text-xs text-slate-300" },
+          { className: "font-mono text-xs text-slate-300 truncate text-right" },
           `${elapsedMs} ms (${tx.last_tiles} tiles)`
         )
       )
@@ -1001,19 +1002,19 @@ export function renderReglasCard(): React.ReactElement {
   if (rulesError) {
     return React.createElement(
       Card,
-      { className: "w-full max-w-[96rem] bg-slate-950 text-slate-50 border-red-900 shadow-xl" },
+      { className: "w-full col-span-1 md:col-span-2 xl:col-span-3 min-w-0 overflow-hidden bg-slate-950 text-slate-50 border-red-900 shadow-xl" },
       React.createElement(
         CardHeader,
         null,
         React.createElement(
           CardTitle,
-          { className: "text-xl font-bold tracking-tight text-red-400" },
+          { className: "text-xl font-bold tracking-tight text-red-400 truncate" },
           "Reglas"
         )
       ),
       React.createElement(
         CardContent,
-        { className: "space-y-2 font-mono text-sm text-red-400" },
+        { className: "space-y-2 font-mono text-sm text-red-400 break-words" },
         React.createElement(
           "p",
           null,
@@ -1026,13 +1027,13 @@ export function renderReglasCard(): React.ReactElement {
   if (!currentRules) {
     return React.createElement(
       Card,
-      { className: "w-full max-w-[96rem] bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+      { className: "w-full col-span-1 md:col-span-2 xl:col-span-3 min-w-0 overflow-hidden bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
       React.createElement(
         CardHeader,
         null,
         React.createElement(
           CardTitle,
-          { className: "text-xl font-bold tracking-tight text-slate-50" },
+          { className: "text-xl font-bold tracking-tight text-slate-50 truncate" },
           "Reglas"
         )
       ),
@@ -1051,21 +1052,21 @@ export function renderReglasCard(): React.ReactElement {
 
   return React.createElement(
     Card,
-    { className: "w-full max-w-[96rem] bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
+    { className: "w-full col-span-1 md:col-span-2 xl:col-span-3 min-w-0 overflow-hidden bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
     React.createElement(
       CardHeader,
-      { className: "flex flex-row items-center justify-between pb-4 border-b border-slate-800" },
+      { className: "flex flex-row items-center justify-between pb-4 border-b border-slate-800 gap-4 min-w-0" },
       React.createElement(
         "div",
-        null,
+        { className: "min-w-0" },
         React.createElement(
           CardTitle,
-          { className: "text-xl font-bold tracking-tight text-slate-50" },
+          { className: "text-xl font-bold tracking-tight text-slate-50 truncate" },
           "Reglas"
         ),
         React.createElement(
           "p",
-          { className: "text-xs text-slate-400 mt-1" },
+          { className: "text-xs text-slate-400 mt-1 truncate" },
           `Configuración y evaluación de alertas (${rulesList.length} reglas)`
         )
       ),
@@ -1074,19 +1075,19 @@ export function renderReglasCard(): React.ReactElement {
         {
           size: "sm",
           onClick: handleCreateRule,
-          className: "bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-3 py-1.5",
+          className: "bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-3 py-1.5 shrink-0",
         },
         "+ Nueva Regla"
       )
     ),
     React.createElement(
       CardContent,
-      { className: "pt-6 space-y-6" },
+      { className: "pt-6 space-y-6 min-w-0" },
       rulesSaveError
         ? React.createElement(
             "div",
             {
-              className: "p-3.5 rounded-lg border border-red-600/80 bg-red-950/60 text-red-200 text-xs font-mono space-y-1 shadow-sm",
+              className: "p-3.5 rounded-lg border border-red-600/80 bg-red-950/60 text-red-200 text-xs font-mono space-y-1 shadow-sm break-words",
             },
             React.createElement(
               "p",
@@ -1099,7 +1100,7 @@ export function renderReglasCard(): React.ReactElement {
       editingRule !== null
         ? React.createElement(
             "div",
-            { className: "p-4 rounded-lg bg-slate-900/60 border border-slate-800 flex justify-center" },
+            { className: "p-4 rounded-lg bg-slate-900/60 border border-slate-800 flex justify-center min-w-0 overflow-hidden" },
             React.createElement(RuleForm, {
               initial: editingRule,
               moods: moodsList,
@@ -1110,7 +1111,7 @@ export function renderReglasCard(): React.ReactElement {
         : null,
       React.createElement(
         "div",
-        { className: "grid grid-cols-1 lg:grid-cols-2 gap-6 items-start" },
+        { className: "grid grid-cols-1 lg:grid-cols-2 gap-6 items-start min-w-0" },
         React.createElement(RuleList, {
           rules: rulesList,
           onEdit: handleEditRule,
@@ -1142,14 +1143,14 @@ function renderCustomizeBar(): React.ReactElement {
     "div",
     {
       className:
-        "w-full max-w-[96rem] p-4 bg-slate-900/60 border border-slate-800 rounded-xl shadow-lg",
+        "w-full max-w-[96rem] p-4 bg-slate-900/60 border border-slate-800 rounded-xl shadow-lg min-w-0 overflow-hidden",
     },
     React.createElement(
       "div",
-      { className: "flex flex-wrap items-center gap-3" },
+      { className: "flex flex-wrap items-center gap-3 min-w-0" },
       React.createElement(
         "span",
-        { className: "text-sm font-semibold text-slate-300" },
+        { className: "text-sm font-semibold text-slate-300 shrink-0" },
         "Personalizar:"
       ),
       allCards.map((cardId) =>
@@ -1158,7 +1159,7 @@ function renderCustomizeBar(): React.ReactElement {
           {
             key: cardId,
             className:
-              "flex items-center gap-2 text-sm text-slate-300 cursor-pointer hover:text-slate-100 transition-colors",
+              "flex items-center gap-2 text-sm text-slate-300 cursor-pointer hover:text-slate-100 transition-colors shrink-0",
           },
           React.createElement("input", {
             type: "checkbox",
@@ -1198,7 +1199,7 @@ function renderApp(): void {
       renderCustomizeBar(),
       React.createElement(
         "div",
-        { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 w-full max-w-[96rem]" },
+        { className: "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 w-full max-w-[96rem]" },
         ...visibleCardElements
       )
     )

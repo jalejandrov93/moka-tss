@@ -30,22 +30,22 @@ export function RuleList({
   const hasActions = Boolean(onEdit || onDelete);
 
   return (
-    <Card className={cn("w-full bg-slate-950 border-slate-800 text-slate-50 shadow-xl", className)}>
-      <CardHeader className="flex flex-row items-center justify-between pb-4">
-        <div>
-          <CardTitle className="text-xl font-bold tracking-tight text-slate-50">Rules</CardTitle>
-          <CardDescription className="text-xs text-slate-400 mt-1">
+    <Card className={cn("w-full min-w-0 overflow-hidden bg-slate-950 border-slate-800 text-slate-50 shadow-xl", className)}>
+      <CardHeader className="flex flex-row items-center justify-between pb-4 gap-2 min-w-0">
+        <div className="min-w-0">
+          <CardTitle className="text-xl font-bold tracking-tight text-slate-50 truncate">Rules</CardTitle>
+          <CardDescription className="text-xs text-slate-400 mt-1 truncate">
             Configured evaluation rules ({rules.length})
           </CardDescription>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="min-w-0">
         {rules.length === 0 ? (
           <div className="py-8 text-center text-sm text-slate-500 italic">
             No rules configured
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-h-96 overflow-y-auto">
             <table className="w-full text-left border-collapse text-sm">
               <thead>
                 <tr className="border-b border-slate-800 text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -69,15 +69,15 @@ export function RuleList({
                       key={rule.id}
                       className="hover:bg-slate-900/50 transition-colors"
                     >
-                      <td className="py-3 px-4 font-semibold text-slate-200">
+                      <td className="py-3 px-4 font-semibold text-slate-200 truncate max-w-[120px]" title={rule.id}>
                         {rule.id}
                       </td>
                       <td className="py-3 px-4 text-slate-300">
-                        <span className="bg-slate-900 px-2 py-1 rounded border border-slate-800">
+                        <span className="bg-slate-900 px-2 py-1 rounded border border-slate-800 break-all">
                           {conditionText}
                         </span>
                         {rule.for_seconds ? (
-                          <span className="ml-2 text-slate-500 text-[11px] font-sans">
+                          <span className="ml-2 text-slate-500 text-[11px] font-sans shrink-0">
                             for {rule.for_seconds}s
                           </span>
                         ) : null}
