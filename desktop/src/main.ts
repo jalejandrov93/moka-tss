@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RuleList, RuleForm, RulePreviewCard } from "@/components/rules";
 import { type RuleConfig, DEFAULT_MOODS } from "@/lib/rules";
+import { loadVisible, saveVisible, getAllCardIds, getCardLabel, type CardId } from "@/lib/dashboard";
 
 const DEFAULT_PORT = 8765;
 let serverPort = DEFAULT_PORT;
@@ -36,6 +37,7 @@ export let brightnessStatusText = "";
 export let editingRule: RuleConfig | null = null;
 export let originalRuleId: string | null = null;
 export let rulesSaveError: string | null = null;
+export let visibleCards: CardId[] = loadVisible();
 
 function getRoot(): Root | null {
   if (root) return root;
@@ -1123,25 +1125,82 @@ export function renderReglasCard(): React.ReactElement {
   );
 }
 
+const cardRenderers: Record<CardId, () => React.ReactElement> = {
+  servicios: renderServiciosCard,
+  mascota: renderMascotaCard,
+  "mascota-detalle": renderMascotaDetailCard,
+  sistema: renderSistemaCard,
+  transmision: renderTransmisionCard,
+  wsl: renderWslCard,
+  reglas: renderReglasCard,
+};
+
+function renderCustomizeBar(): React.ReactElement {
+  const allCards = getAllCardIds();
+
+  return React.createElement(
+    "div",
+    {
+      className:
+        "w-full max-w-[96rem] p-4 bg-slate-900/60 border border-slate-800 rounded-xl shadow-lg",
+    },
+    React.createElement(
+      "div",
+      { className: "flex flex-wrap items-center gap-3" },
+      React.createElement(
+        "span",
+        { className: "text-sm font-semibold text-slate-300" },
+        "Personalizar:"
+      ),
+      allCards.map((cardId) =>
+        React.createElement(
+          "label",
+          {
+            key: cardId,
+            className:
+              "flex items-center gap-2 text-sm text-slate-300 cursor-pointer hover:text-slate-100 transition-colors",
+          },
+          React.createElement("input", {
+            type: "checkbox",
+            checked: visibleCards.includes(cardId),
+            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+              if (e.target.checked) {
+                visibleCards = [...visibleCards, cardId];
+              } else {
+                visibleCards = visibleCards.filter((id) => id !== cardId);
+              }
+              saveVisible(visibleCards);
+              renderApp();
+            },
+            className:
+              "w-4 h-4 rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500 focus:ring-2",
+          }),
+          getCardLabel(cardId)
+        )
+      )
+    )
+  );
+}
+
 function renderApp(): void {
   const currentRoot = getRoot();
   if (!currentRoot) return;
+
+  const visibleCardElements = visibleCards
+    .map((id) => cardRenderers[id])
+    .filter(Boolean)
+    .map((fn) => fn());
 
   currentRoot.render(
     React.createElement(
       "div",
       { className: "min-h-screen bg-slate-950 text-slate-50 p-6 flex flex-col items-center gap-6" },
+      renderCustomizeBar(),
       React.createElement(
         "div",
         { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 w-full max-w-[96rem]" },
-        renderServiciosCard(),
-        renderMascotaCard(),
-        renderMascotaDetailCard(),
-        renderSistemaCard(),
-        renderWslCard(),
-        renderTransmisionCard()
-      ),
-      renderReglasCard()
+        ...visibleCardElements
+      )
     )
   );
 }
