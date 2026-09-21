@@ -84,3 +84,6 @@ Separar `MokaApp` en Core testeable + Host lifecycle + UI futura, dejando listo 
 - [x] MD-11.1 Toggles tarjetas en localStorage (job 33b17cdb, opencode). Merge `c4a7246`. lib/dashboard.ts + barra Personalizar.
 - [x] MD-11.2 Diseño temas (agy recon): modelo Theme/CardConfig, persistencia backend, pipeline imagen ≤2MB→WebP, slices 11.1..11.6. Nota: toggles quedaron en localStorage como v1; el backend llega en MD-11.x persistencia.
 - [x] MD-11.3 Tema en backend (opencode murió por timeout con trabajo parcial; padre lo completó: reubicó docs, reformateó 18 líneas, extrajo _validate_theme_card, dispatch _POST_ROUTES por C901). Commit `f0e8c5a` mergeado. Gate: 74 webconfig OK, suite solo 8 Rev C, lint CI 0.
+- [x] MD-11.4 Grid dinámico desde tema (job 0a10d6e6, agy). Merge `79e1914`. Orden/visibilidad del backend, override local con POST.
+- [x] MD-11.5 Pipeline imagen (job f70381cf, opencode). Merge `28cc9a6`. lib/image.ts: pick ≤2MB, WebP 1920px/0.85, rechaza >400KB.
+- Gate fusionado: tsc + build OK.
