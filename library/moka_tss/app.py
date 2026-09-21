@@ -173,6 +173,9 @@ class MokaApp:
         self._last_agenthub_time = -1e9
         self._last_codexbar_time = -1e9
 
+        self._consecutive_render_errors = 0
+        self._consecutive_screen_errors = 0
+
     def _load_default_rule_engine(self) -> RuleEngine:
         rules_path = resource_path("res", "moka_tss", "rules.yaml")
         if rules_path.is_file():
@@ -294,6 +297,18 @@ class MokaApp:
             logger.warning("Rule evaluation failed: %s", exc)
             return getattr(self.rule_engine, "default_mood", "calma")
 
+    def _show_on_screen(self, frame) -> None:
+        """Push one frame to the panel, tracking consecutive failures."""
+        try:
+            self.screen.show(frame)
+            self._consecutive_screen_errors = 0
+        except Exception as exc:
+            if self.simulate:
+                logger.warning("Screen show failed in simulation: %s", exc)
+            else:
+                logger.error("Screen show failed: %s", exc)
+            self._consecutive_screen_errors += 1
+
     def _render_and_output(self, mood: str) -> None:
         try:
             frame = self.renderer(
@@ -305,8 +320,10 @@ class MokaApp:
                 tick=self.tick_count,
                 hidden_providers=self.hidden_providers,
             )
+            self._consecutive_render_errors = 0
         except Exception as exc:
             logger.error("Rendering failed: %s", exc)
+            self._consecutive_render_errors += 1
             frame = Image.new("RGB", DEFAULT_SIZE, (15, 23, 42))
 
         if self.simulate:
@@ -316,12 +333,37 @@ class MokaApp:
             except Exception as exc:
                 logger.warning("Failed to save simulation frame: %s", exc)
             if self.screen is not None:
-                try:
-                    self.screen.show(frame)
-                except Exception as exc:
-                    logger.warning("Screen show failed in simulation: %s", exc)
+                self._show_on_screen(frame)
         elif self.screen is not None:
-            self.screen.show(frame)
+            self._show_on_screen(frame)
+
+    def _recover_renderer(self) -> None:
+        if self._consecutive_render_errors < 3:
+            return
+        try:
+            sprites = self._load_default_sprites()
+            if sprites is not None:
+                self.sprites = sprites
+        except Exception as exc:
+            logger.warning("Render recovery failed: %s", exc)
+        self._consecutive_render_errors = 0
+
+    def _recover_screen(self) -> None:
+        if self._consecutive_screen_errors < 3:
+            return
+        if self.screen is not None:
+            try:
+                self.screen.reset()
+            except Exception as exc:
+                logger.warning("Screen recovery failed: %s", exc)
+        self._consecutive_screen_errors = 0
+
+    def _check_recovery(self, now: float) -> None:
+        try:
+            self._recover_renderer()
+            self._recover_screen()
+        except Exception as exc:
+            logger.error("Recovery check failed unexpectedly: %s", exc)
 
     def step(self) -> None:
         """Execute one refresh cycle: poll sources according to cadence, evaluate rules, and render."""
@@ -339,6 +381,7 @@ class MokaApp:
         }
         self._render_and_output(mood)
         self.tick_count += 1
+        self._check_recovery(now)
 
     def _apply_saved_settings(self, settings: dict) -> None:
         """Apply newly saved settings immediately to the running app and hardware."""
