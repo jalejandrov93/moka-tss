@@ -371,6 +371,16 @@ function renderSistemaCard(): React.ReactElement {
       ? `${screen.brightness}%`
       : "n/d";
 
+  const orientationDisplay =
+    currentConfig && typeof currentConfig.orientation === "string" && currentConfig.orientation.trim() !== ""
+      ? currentConfig.orientation.trim()
+      : "n/d";
+
+  const refreshDisplay =
+    currentConfig && typeof currentConfig.refresh_interval_seconds === "number" && !Number.isNaN(currentConfig.refresh_interval_seconds) && currentConfig.refresh_interval_seconds > 0
+      ? `${currentConfig.refresh_interval_seconds}s`
+      : "n/d";
+
   return React.createElement(
     Card,
     { className: "w-full max-w-md bg-slate-950 text-slate-50 border-slate-800 shadow-xl" },
@@ -405,11 +415,16 @@ function renderSistemaCard(): React.ReactElement {
             { variant: turingBadgeVariant },
             turingStateText
           )
-        ),
+        )
+      ),
+      React.createElement(
+        "div",
+        { className: "flex items-center justify-between text-sm" },
+        React.createElement("span", { className: "text-slate-400 font-medium" }, "Pantalla"),
         React.createElement(
           "span",
           { className: "font-mono text-xs text-slate-300" },
-          `Brillo: ${brightnessDisplay}`
+          `${orientationDisplay} · ${refreshDisplay} · Brillo: ${brightnessDisplay}`
         )
       ),
       React.createElement(
