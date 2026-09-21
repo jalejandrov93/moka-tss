@@ -80,3 +80,6 @@ Separar `MokaApp` en Core testeable + Host lifecycle + UI futura, dejando listo 
 - [x] MD-6.2 RuleList + RuleForm (job f8080159 relaunch, agy). Merge tras tsc reproducido. Sin cablear en main.ts (siguiente: MD-6.4).
 - [x] MD-8.2 Watchdog en step() (Jules, rescatado por pegado — sin PR). Commit `c872d69` mergeado. Verificado por padre: 4 tests recovery OK, suite solo 8 Rev C, lint CI 0 tras refactorizar 2 C901 de Jules (_show_on_screen, _recover_renderer/_recover_screen).
 - [x] MD-2.10 CORS en panel (job 0488f549, opencode). Commit mergeado. ACAO * + OPTIONS 204 con check Host; padre corrigió F841. 42 tests OK, lint CI 0.
+- [x] MD-6.5 Scrollbar dark (job 38d86044, agy). Merge. Solo index.css.
+- [x] MD-11.1 Toggles tarjetas en localStorage (job 33b17cdb, opencode). Merge `c4a7246`. lib/dashboard.ts + barra Personalizar.
+- [x] MD-11.2 Diseño temas (agy recon): modelo Theme/CardConfig, persistencia backend, pipeline imagen ≤2MB→WebP, slices 11.1..11.6. Nota: toggles quedaron en localStorage como v1; el backend llega en MD-11.x persistencia.
