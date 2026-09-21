@@ -64,6 +64,7 @@ recomputes pixels.
 """
 
 import random
+import re
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -220,6 +221,39 @@ class MascotSprites:
         ]
 
         return cls(sequences)
+
+    @classmethod
+    def load_variant(cls, name: str) -> "MascotSprites":
+        """Load a sprite variant from res/moka_tss/sprites/<name>/.
+
+        Args:
+            name: Variant name. Must match ^[a-z0-9_-]+$ and must not contain
+                path traversal sequences ('..') or separators ('/').
+
+        Returns:
+            MascotSprites instance loaded from the variant directory if it
+            exists, otherwise falls back to the base cls.load().
+
+        Raises:
+            FileNotFoundError: If name is invalid (fails regex, contains '..',
+                '/', or is empty).
+        """
+        # Sanitize name: must match ^[a-z0-9_-]+$ and not contain '..' or '/'
+        if not name or not re.fullmatch(r"[a-z0-9_-]+", name):
+            raise FileNotFoundError(f"Invalid variant name: '{name}'")
+        if ".." in name or "/" in name:
+            raise FileNotFoundError(f"Invalid variant name: '{name}'")
+
+        # Resolve variant directory: res/moka_tss/sprites/<name>/
+        base_dir = _default_assets_dir()
+        variant_dir = base_dir / name
+
+        # If not a directory, fall back to base load()
+        if not variant_dir.is_dir():
+            return cls.load()
+
+        # Delegate to cls.load() with the variant directory
+        return cls.load(variant_dir)
 
     def frame(self, mood: str, tick: int) -> Image.Image:
         sequence = self._sequences.get(mood) or self._sequences[self.FALLBACK_MOOD]
