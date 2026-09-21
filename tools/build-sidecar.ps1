@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+﻿# SPDX-License-Identifier: GPL-3.0-or-later
 
 # Build script for the MOKA TSS sidecar Windows executable (Tauri integration).
 #

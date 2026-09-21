@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+﻿# SPDX-License-Identifier: GPL-3.0-or-later
 
 # Orchestrator script for full Windows package: Python sidecar + Tauri desktop.
 # Run from repository root: powershell -ExecutionPolicy Bypass -File tools\package-windows.ps1
@@ -19,11 +19,24 @@ function Fail($Message) {
 function CheckCommand($Cmd, $Name) {
     try {
         & $Cmd --version 2>$null | Out-Null
-        Write-Host "✓ $Name found"
+        Write-Host "[OK] $Name found"
     } catch {
         Fail "$Name not found in PATH. Install $Name and ensure it is on PATH before running this script."
     }
 }
+$PythonCmd = "python"
+try {
+    & $PythonCmd --version 2>$null | Out-Null
+} catch {
+    # python.org installs always provide the 'py' launcher on Windows
+    $PythonCmd = "py"
+    try {
+        & $PythonCmd --version 2>$null | Out-Null
+    } catch {
+        Fail "Python not found in PATH (tried 'python' and 'py'). Install Python 3.13+ and ensure it is on PATH before running this script."
+    }
+}
+
 
 # Must run from repository root
 if (-not (Test-Path ".\moka-tss.spec")) {
@@ -35,17 +48,17 @@ if (-not (Test-Path ".\desktop")) {
 
 Write-Host "=== Checking prerequisites ==="
 
-# Check required tools
-CheckCommand "python" "Python 3.13+"
+# Check required tools (Python resolved above with py fallback)
+Write-Host "[OK] Python found via '$PythonCmd'"
 CheckCommand "cargo" "Rust (stable)"
 CheckCommand "node" "Node.js 20+"
 CheckCommand "npm" "npm"
 
 # Verify Python version
-$PyVersion = python --version 2>&1
+$PyVersion = & $PythonCmd --version 2>&1
 if (-not $PyVersion) { Fail "Python not found." }
 if ($PyVersion -notmatch "Python 3\.(1[3-9]|[2-9]\d)") {
-    Write-Host "⚠ Python version: $PyVersion (expected 3.13+)"
+    Write-Host "[WARN] Python version: $PyVersion (expected 3.13+)"
 }
 
 # Verify Rust
@@ -61,10 +74,10 @@ if ($IsWindows) {
     $WebView2Path = "${env:ProgramFiles(x86)}\Microsoft\EdgeWebView\Application\*"
     $WebView2SystemPath = "${env:SystemRoot}\System32\msedgewebview2.exe"
     if (-not (Test-Path $WebView2Path) -and -not (Test-Path $WebView2SystemPath)) {
-        Write-Host "⚠ WebView2 Runtime not detected. Tauri requires WebView2 (Evergreen Bootstrapper or Fixed Version)."
+        Write-Host "[WARN] WebView2 Runtime not detected. Tauri requires WebView2 (Evergreen Bootstrapper or Fixed Version)."
         Write-Host "  Download: https://developer.microsoft.com/en-us/microsoft-edge/webview2/"
     } else {
-        Write-Host "✓ WebView2 Runtime found"
+        Write-Host "[OK] WebView2 Runtime found"
     }
 }
 
@@ -86,14 +99,14 @@ if (-not $SkipSidecar) {
         Fail "Sidecar build succeeded but $SidecarDst not found."
     }
 
-    Write-Host "✓ Sidecar ready at $SidecarDst"
+    Write-Host "[OK] Sidecar ready at $SidecarDst"
 } else {
     Write-Host "Skipping sidecar build (--SkipSidecar)."
     $SidecarDst = ".\desktop\src-tauri\binaries\moka-sidecar-x86_64-pc-windows-msvc.exe"
     if (-not (Test-Path $SidecarDst)) {
         Fail "Sidecar binary not found at $SidecarDst. Build it first or run without -SkipSidecar."
     }
-    Write-Host "✓ Using existing sidecar at $SidecarDst"
+    Write-Host "[OK] Using existing sidecar at $SidecarDst"
 }
 
 Write-Host ""
@@ -109,7 +122,7 @@ try {
     & npm run build
     if ($LASTEXITCODE -ne 0) { Fail "npm run build failed (exit code $LASTEXITCODE)." }
     
-    Write-Host "✓ Desktop frontend built successfully"
+    Write-Host "[OK] Desktop frontend built successfully"
 }
 finally {
     Pop-Location
@@ -124,7 +137,7 @@ try {
     & npx tauri build
     if ($LASTEXITCODE -ne 0) { Fail "tauri build failed (exit code $LASTEXITCODE)." }
     
-    Write-Host "✓ Tauri build completed"
+    Write-Host "[OK] Tauri build completed"
 }
 finally {
     Pop-Location
@@ -139,5 +152,5 @@ if (Test-Path $InstallerDir) {
     }
 } else {
     Write-Host "Installers should be in: $InstallerDir"
-    Write-Host "(Check desktop\src-tauri\target\release\bundle\msi\ or \nsis\)"
+    Write-Host "(Check desktop\src-tauri\target\release\bundle\msi\ or \r\nsis\)"
 }
